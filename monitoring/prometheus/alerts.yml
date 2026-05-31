@@ -1,0 +1,24 @@
+groups:
+  - name: transcript_agent
+    rules:
+      - alert: AgentMetricsTargetDown
+        expr: up{job="transcript-agent"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Transcript agent metrics endpoint is down
+          description: >
+            Prometheus cannot scrape the agent on host.docker.internal:9464.
+            Ensure the agent is running with AGENT_METRICS_ENABLED=true.
+
+      - alert: AgentHighTaskErrorRate
+        expr: sum(rate(agent_task_errors_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Transcript agent task errors elevated
+          description: >
+            Task error rate exceeds 0.01/s over 5 minutes.
+            Check Grafana error panels and agent logs.

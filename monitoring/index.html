@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Observability — How It Works</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --bg2: #e8eef8;
+      --surface: #ffffff;
+      --surface2: #f8faff;
+      --accent: #1a73e8;
+      --accent-soft: #e8f0fe;
+      --accent2: #188038;
+      --accent2-soft: #e6f4ea;
+      --warn: #e8710a;
+      --warn-soft: #fef7e0;
+      --purple: #7c3aed;
+      --purple-soft: #f3e8ff;
+      --prom: #e6522c;
+      --prom-soft: #fde8e4;
+      --graf: #f46800;
+      --graf-soft: #fff0e6;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --shadow: 0 8px 28px rgba(60, 64, 67, 0.12);
+      --shadow-sm: 0 2px 8px rgba(60, 64, 67, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 55%, #eef2ff 100%);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(circle at 10% 15%, rgba(230, 82, 44, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 90% 85%, rgba(244, 104, 0, 0.06) 0%, transparent 38%),
+        radial-gradient(circle at 50% 50%, rgba(26, 115, 232, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .deck { height: 100vh; position: relative; z-index: 1; }
+    .slide {
+      display: none;
+      height: 100vh;
+      padding: 2.25rem 3.25rem 4.25rem;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 1180px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
+    }
+    .slide.active { display: flex; }
+    .slide.split { flex-direction: row; align-items: center; gap: 2rem; }
+    .slide.split .slide-text { flex: 1; min-width: 0; }
+    .slide.split .slide-viz { flex: 0 0 44%; max-width: 500px; }
+    .slide.flow-slide { justify-content: flex-start; padding-top: 2rem; gap: 0.6rem; }
+    .slide.flow-slide .viz-box { flex: 1; width: 100%; max-width: none; padding: 1rem 1.25rem; }
+    .slide.flow-slide .viz-box svg { min-height: min(52vh, 460px); height: min(52vh, 460px); width: 100%; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 { font-size: 2.4rem; font-weight: 700; line-height: 1.15; margin-bottom: 0.6rem; }
+    h2 { font-size: 1.8rem; color: var(--accent); margin-bottom: 0.85rem; font-weight: 700; }
+    h3 { font-size: 1rem; color: var(--accent2); margin: 0.75rem 0 0.4rem; font-weight: 600; }
+    p, li { font-size: 1.02rem; line-height: 1.5; }
+    .subtitle { font-size: 1.2rem; color: var(--muted); margin-bottom: 1rem; }
+    .tag {
+      display: inline-block;
+      background: var(--prom-soft);
+      border: 1px solid #f5c4b8;
+      padding: 0.28rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--prom);
+      margin-right: 0.45rem;
+      margin-bottom: 0.45rem;
+    }
+    .tag.graf { background: var(--graf-soft); border-color: #ffd4b3; color: var(--graf); }
+    .tag.blue { background: var(--accent-soft); border-color: #c2d7f7; color: var(--accent); }
+    ul, ol { margin-left: 1.25rem; margin-top: 0.4rem; }
+    li { margin-bottom: 0.4rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.6rem; }
+    .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; margin-top: 0.6rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.15rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .card.prom { border-top: 4px solid var(--prom); }
+    .card.graf { border-top: 4px solid var(--graf); }
+    .card.blue { border-top: 4px solid var(--accent); }
+    .card.green { border-top: 4px solid var(--accent2); }
+    .card h3 { margin-top: 0; color: var(--text); }
+    pre, code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 0.8rem;
+    }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.6rem 0;
+      line-height: 1.45;
+      box-shadow: var(--shadow-sm);
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.88rem;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      margin-top: 0.5rem;
+    }
+    th, td { border: 1px solid var(--border); padding: 0.5rem 0.75rem; text-align: left; }
+    th { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    tr:nth-child(even) td { background: var(--surface2); }
+    .viz-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .viz-box svg { width: 100%; display: block; }
+    .viz-caption { font-size: 0.88rem; color: var(--muted); text-align: center; margin-top: 0.5rem; }
+    .title-slide {
+      background: linear-gradient(120deg, rgba(255,255,255,0.95), rgba(253, 232, 228, 0.9));
+      border-radius: 22px;
+      margin: 0.75rem;
+      max-width: calc(1180px - 1.5rem);
+      padding: 2.75rem 3rem;
+      box-shadow: var(--shadow);
+      border: 1px solid white;
+    }
+    .title-slide h1 {
+      background: linear-gradient(90deg, var(--prom), var(--graf));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .step-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.75rem; }
+    .step-item {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+    .step-item .num {
+      width: 2rem; height: 2rem; border-radius: 50%;
+      background: var(--prom); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; margin: 0 auto 0.5rem;
+    }
+    .step-item p { font-size: 0.88rem; margin: 0; color: var(--muted); }
+    .step-item strong { display: block; color: var(--text); font-size: 0.92rem; margin-bottom: 0.25rem; }
+    .type-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .type-card .label {
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; margin-bottom: 0.35rem;
+    }
+    .type-card.counter .label { color: var(--prom); }
+    .type-card.gauge .label { color: var(--accent); }
+    .type-card.histogram .label { color: var(--accent2); }
+    .cheat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 0.6rem;
+    }
+    .cheat-item {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      border-left: 4px solid var(--accent);
+      box-shadow: var(--shadow-sm);
+      font-size: 0.92rem;
+    }
+    .cheat-item code { color: var(--prom); font-size: 0.78rem; }
+    .accent { color: var(--accent); }
+    .green { color: var(--accent2); }
+    .prom { color: var(--prom); }
+    .nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 2rem;
+      display: flex; justify-content: space-between;
+      font-size: 0.85rem; color: var(--muted);
+      z-index: 10;
+    }
+    .progress { height: 4px; background: rgba(0,0,0,0.06); position: fixed; top: 0; left: 0; right: 0; z-index: 10; }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--prom), var(--graf), var(--accent));
+      transition: width 0.3s ease;
+    }
+    @media (max-width: 900px) {
+      .slide { padding: 1.75rem 1.25rem 4rem; }
+      .slide.split { flex-direction: column; }
+      .two-col, .three-col, .step-grid, .cheat-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="deck" id="deck">
+
+    <!-- 1 -->
+    <section class="slide active title-slide split">
+      <div class="slide-text">
+        <span class="tag">Goal 3</span>
+        <span class="tag graf">Observability</span>
+        <h1>How Monitoring Works</h1>
+        <p class="subtitle">Prometheus + Grafana for the Transcript Risk Assessor</p>
+        <p>A walkthrough of <strong>what gets measured</strong>, <strong>how data flows</strong>, and <strong>where to look</strong> when debugging.</p>
+        <p style="margin-top:1rem;color:var(--muted);font-size:0.95rem">Companion to <code>monitoring/README.md</code> · Live dashboard: <strong>localhost:3001</strong></p>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 340 240" xmlns="http://www.w3.org/2000/svg">
+            <rect x="30" y="90" width="90" height="60" rx="10" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+            <text x="75" y="118" text-anchor="middle" fill="#1a73e8" font-size="11" font-weight="700">Agent</text>
+            <text x="75" y="134" text-anchor="middle" fill="#5f6368" font-size="9">:9464/metrics</text>
+            <path d="M130 120 H175" stroke="#e6522c" stroke-width="3" marker-end="url(#a1)"/>
+            <rect x="175" y="90" width="90" height="60" rx="10" fill="#fde8e4" stroke="#e6522c" stroke-width="2"/>
+            <text x="220" y="118" text-anchor="middle" fill="#e6522c" font-size="11" font-weight="700">Prometheus</text>
+            <text x="220" y="134" text-anchor="middle" fill="#5f6368" font-size="9">:9090 scrape</text>
+            <path d="M275 120 H310" stroke="#f46800" stroke-width="3" marker-end="url(#a2)"/>
+            <rect x="250" y="170" width="90" height="50" rx="10" fill="#fff0e6" stroke="#f46800" stroke-width="2"/>
+            <text x="295" y="200" text-anchor="middle" fill="#f46800" font-size="11" font-weight="700">Grafana</text>
+            <text x="295" y="148" text-anchor="middle" fill="#5f6368" font-size="9">:3001 charts</text>
+            <path d="M220 150 V165" stroke="#f46800" stroke-width="2"/>
+            <defs>
+              <marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#e6522c"/></marker>
+              <marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#f46800"/></marker>
+            </defs>
+            <text x="170" y="55" text-anchor="middle" fill="#5f6368" font-size="12" font-weight="600">Pull model — Prometheus fetches metrics every 15s</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <h2>What we built (Goal 3 checklist)</h2>
+      <div class="three-col">
+        <div class="card prom"><h3>📊 Grafana dashboard</h3><p>One service — Transcript Risk Assessor. Auto-loaded at port <strong>3001</strong>.</p></div>
+        <div class="card blue"><h3>⏱ 6 workflow tasks</h3><p>Gate, PDF render, math, spatial, LLM assess, session Q&amp;A (+ <code>llm_chat</code>).</p></div>
+        <div class="card green"><h3>🖥 CPU &amp; memory</h3><p>Agent process <strong>and</strong> whole-machine host metrics (5s sampler).</p></div>
+        <div class="card blue"><h3>📈 Latency</h3><p><code>agent_task_duration_seconds</code> histogram — avg &amp; p95 in Grafana.</p></div>
+        <div class="card green"><h3>🗄 DB time</h3><p><code>agent_db_seconds</code> — every SQLite insert/select in <code>db/store.py</code>.</p></div>
+        <div class="card prom"><h3>🚨 Errors</h3><p>Task exceptions + LLM fallback counter + 2 Prometheus alert rules.</p></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide flow-slide">
+      <h2>The big picture — data flow</h2>
+      <div class="viz-box">
+        <svg viewBox="0 0 1050 480" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#5f6368"/></marker>
+          </defs>
+          <!-- Row 1: User -->
+          <rect x="420" y="12" width="210" height="44" rx="12" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2"/>
+          <text x="525" y="40" text-anchor="middle" fill="#1a73e8" font-size="15" font-weight="700">You: adk web / verify PDF</text>
+
+          <!-- Row 2: Agent code -->
+          <line x1="525" y1="56" x2="525" y2="78" stroke="#1a73e8" stroke-width="2" marker-end="url(#arr)"/>
+          <rect x="280" y="78" width="490" height="70" rx="14" fill="#188038"/>
+          <text x="525" y="108" text-anchor="middle" fill="white" font-size="16" font-weight="700">code/agent.py — workflow nodes run</text>
+          <text x="525" y="130" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="13">track_task() / track_task_async() wraps each step</text>
+
+          <!-- Row 3: metrics.py -->
+          <line x1="525" y1="148" x2="525" y2="168" stroke="#188038" stroke-width="2" marker-end="url(#arr)"/>
+          <rect x="300" y="168" width="450" height="58" rx="12" fill="#e6f4ea" stroke="#188038" stroke-width="2"/>
+          <text x="525" y="194" text-anchor="middle" fill="#188038" font-size="15" font-weight="700">code/observability/metrics.py</text>
+          <text x="525" y="214" text-anchor="middle" fill="#5f6368" font-size="12">Increments counters · observes histograms · sets gauges</text>
+
+          <!-- Row 4: /metrics HTTP -->
+          <line x1="525" y1="226" x2="525" y2="246" stroke="#188038" stroke-width="2" marker-end="url(#arr)"/>
+          <rect x="350" y="246" width="350" height="50" rx="12" fill="#1e293b"/>
+          <text x="525" y="270" text-anchor="middle" fill="#e2e8f0" font-size="14" font-weight="600">HTTP GET http://127.0.0.1:9464/metrics</text>
+          <text x="525" y="288" text-anchor="middle" fill="#94a3b8" font-size="11">prometheus_client exposes text format</text>
+
+          <!-- Row 5: Prometheus pull -->
+          <line x1="525" y1="296" x2="525" y2="316" stroke="#e6522c" stroke-width="2.5" marker-end="url(#arr)"/>
+          <rect x="280" y="316" width="490" height="58" rx="12" fill="#fde8e4" stroke="#e6522c" stroke-width="2"/>
+          <text x="525" y="342" text-anchor="middle" fill="#e6522c" font-size="15" font-weight="700">Prometheus (Docker) scrapes every 15s</text>
+          <text x="525" y="362" text-anchor="middle" fill="#5f6368" font-size="12">target: host.docker.internal:9464 → stores time series in TSDB</text>
+
+          <!-- Row 6: Grafana -->
+          <line x1="525" y1="374" x2="525" y2="394" stroke="#f46800" stroke-width="2.5" marker-end="url(#arr)"/>
+          <rect x="320" y="394" width="410" height="50" rx="12" fill="#fff0e6" stroke="#f46800" stroke-width="2"/>
+          <text x="525" y="418" text-anchor="middle" fill="#f46800" font-size="15" font-weight="700">Grafana queries Prometheus → draws panels</text>
+          <text x="525" y="436" text-anchor="middle" fill="#5f6368" font-size="11">transcript-agent.json dashboard</text>
+
+          <!-- Side note: host vs docker -->
+          <rect x="820" y="300" width="210" height="100" rx="10" fill="#f8faff" stroke="#dadce0"/>
+          <text x="925" y="322" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="600">Why host.docker.internal?</text>
+          <text x="925" y="342" text-anchor="middle" fill="#5f6368" font-size="10">Agent runs on Windows host</text>
+          <text x="925" y="358" text-anchor="middle" fill="#5f6368" font-size="10">Prometheus runs in Docker</text>
+          <text x="925" y="374" text-anchor="middle" fill="#5f6368" font-size="10">Bridge reaches host :9464</text>
+          <line x1="770" y1="345" x2="820" y2="345" stroke="#dadce0" stroke-width="1.5" stroke-dasharray="4 3"/>
+        </svg>
+        <p class="viz-caption">Nothing pushes to Grafana — the agent exposes metrics; Prometheus pulls; Grafana reads Prometheus</p>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <h2>Startup — what happens when you run the agent</h2>
+      <div class="step-grid">
+        <div class="step-item"><div class="num">1</div><strong>Load agent</strong><p><code>code/agent.py</code> imports at startup</p></div>
+        <div class="step-item"><div class="num">2</div><strong>Check env</strong><p><code>AGENT_METRICS_ENABLED=true</code> in <code>code/.env</code></p></div>
+        <div class="step-item"><div class="num">3</div><strong>Start server</strong><p><code>start_metrics_server()</code> → port <strong>9464</strong></p></div>
+        <div class="step-item"><div class="num">4</div><strong>CPU sampler</strong><p>Background thread every <strong>5s</strong> (psutil)</p></div>
+      </div>
+      <pre># code/agent.py (top of module)
+if metrics_enabled():
+    start_metrics_server()</pre>
+      <div class="two-col">
+        <div class="card blue">
+          <h3>Docker stack (separate terminal)</h3>
+          <pre style="margin:0.5rem 0 0">cd monitoring
+docker compose up -d</pre>
+          <p style="font-size:0.9rem;margin-top:0.5rem">Starts Prometheus :9090, Grafana :3001, Alertmanager :9093</p>
+        </div>
+        <div class="card prom">
+          <h3>Verify it works</h3>
+          <p style="font-size:0.9rem">Open <a href="http://127.0.0.1:9464/metrics" style="color:var(--prom)">127.0.0.1:9464/metrics</a> — you should see lines like:</p>
+          <pre style="margin-top:0.4rem;font-size:0.72rem">agent_process_memory_bytes ...
+agent_task_total{task="...",status="success"} 0</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide flow-slide">
+      <h2>One verify request — which metrics fire?</h2>
+      <div class="viz-box">
+        <svg viewBox="0 0 1050 440" xmlns="http://www.w3.org/2000/svg">
+          <text x="30" y="28" fill="#5f6368" font-size="13" font-weight="600">User: "Verify the transcript at code/pdf/sample.pdf"</text>
+          <!-- timeline -->
+          <line x1="40" y1="60" x2="1010" y2="60" stroke="#dadce0" stroke-width="3"/>
+          <!-- steps -->
+          <circle cx="80" cy="60" r="10" fill="#7c3aed"/>
+          <text x="80" y="88" text-anchor="middle" fill="#7c3aed" font-size="10" font-weight="600">gate</text>
+          <text x="80" y="102" text-anchor="middle" fill="#5f6368" font-size="9">route=verify</text>
+          <text x="80" y="118" text-anchor="middle" fill="#5f6368" font-size="8">agent_route_total</text>
+
+          <circle cx="220" cy="60" r="10" fill="#1a73e8"/>
+          <text x="220" y="88" text-anchor="middle" fill="#1a73e8" font-size="10" font-weight="600">render</text>
+          <text x="220" y="102" text-anchor="middle" fill="#5f6368" font-size="9">PNG cache</text>
+          <text x="220" y="118" text-anchor="middle" fill="#5f6368" font-size="8">cache_io + render_pdf</text>
+
+          <circle cx="360" cy="60" r="10" fill="#1a73e8"/>
+          <text x="360" y="88" text-anchor="middle" fill="#1a73e8" font-size="10" font-weight="600">math</text>
+          <text x="360" y="118" text-anchor="middle" fill="#5f6368" font-size="8">verify_transcript_math</text>
+
+          <circle cx="500" cy="60" r="10" fill="#1a73e8"/>
+          <text x="500" y="88" text-anchor="middle" fill="#1a73e8" font-size="10" font-weight="600">spatial</text>
+          <text x="500" y="118" text-anchor="middle" fill="#5f6368" font-size="8">verify_transcript_spatial</text>
+
+          <circle cx="660" cy="60" r="10" fill="#e8710a"/>
+          <text x="660" y="88" text-anchor="middle" fill="#e8710a" font-size="10" font-weight="600">llm_assess</text>
+          <text x="660" y="102" text-anchor="middle" fill="#5f6368" font-size="9">+ llm_chat inside</text>
+          <text x="660" y="118" text-anchor="middle" fill="#5f6368" font-size="8">duration histogram</text>
+
+          <circle cx="820" cy="60" r="10" fill="#188038"/>
+          <text x="820" y="88" text-anchor="middle" fill="#188038" font-size="10" font-weight="600">SQLite</text>
+          <text x="820" y="102" text-anchor="middle" fill="#5f6368" font-size="9">messages, tools</text>
+          <text x="820" y="118" text-anchor="middle" fill="#5f6368" font-size="8">agent_db_seconds</text>
+
+          <circle cx="960" cy="60" r="10" fill="#188038"/>
+          <text x="960" y="88" text-anchor="middle" fill="#188038" font-size="10" font-weight="600">done</text>
+          <text x="960" y="118" text-anchor="middle" fill="#5f6368" font-size="8">task_total++</text>
+
+          <!-- Each step records -->
+          <rect x="40" y="145" width="970" height="130" rx="14" fill="#f8faff" stroke="#dadce0"/>
+          <text x="525" y="172" text-anchor="middle" fill="#202124" font-size="14" font-weight="700">Every wrapped step records:</text>
+          <text x="120" y="200" fill="#188038" font-size="12">✓ agent_task_duration_seconds{task, status}</text>
+          <text x="120" y="222" fill="#188038" font-size="12">✓ agent_task_total{task, status} +1</text>
+          <text x="120" y="244" fill="#e6522c" font-size="12">✗ agent_task_errors_total (only on exception)</text>
+          <text x="560" y="200" fill="#1a73e8" font-size="12">agent_cache_io_seconds (PDF render only)</text>
+          <text x="560" y="222" fill="#1a73e8" font-size="12">agent_db_seconds (each SQLite op)</text>
+          <text x="560" y="244" fill="#e8710a" font-size="12">agent_llm_fallback_total (if LLM fails)</text>
+
+          <!-- Background gauges -->
+          <rect x="40" y="300" width="970" height="120" rx="14" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.5"/>
+          <text x="525" y="328" text-anchor="middle" fill="#1a73e8" font-size="14" font-weight="700">Always running in background (every 5 seconds)</text>
+          <text x="200" y="358" text-anchor="middle" fill="#5f6368" font-size="12">agent_process_cpu_percent</text>
+          <text x="200" y="378" text-anchor="middle" fill="#5f6368" font-size="11">agent process only</text>
+          <text x="525" y="358" text-anchor="middle" fill="#5f6368" font-size="12">agent_host_cpu_percent</text>
+          <text x="525" y="378" text-anchor="middle" fill="#5f6368" font-size="11">whole machine (Ollama, Docker…)</text>
+          <text x="850" y="358" text-anchor="middle" fill="#5f6368" font-size="12">agent_process_memory_bytes</text>
+          <text x="850" y="378" text-anchor="middle" fill="#5f6368" font-size="11">RSS of Python process</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide split">
+      <div class="slide-text">
+        <h2>Instrumentation code — the helpers</h2>
+        <p>All logic lives in <code>code/observability/metrics.py</code>. Workflow code calls small wrappers:</p>
+        <table>
+          <tr><th>Helper</th><th>Used for</th></tr>
+          <tr><td><code>track_task_async()</code></td><td>Async nodes (gate, LLM, Q&amp;A)</td></tr>
+          <tr><td><code>track_task()</code></td><td>Sync nodes (tools, render)</td></tr>
+          <tr><td><code>track_cache_io()</code></td><td>PDF → PNG file I/O</td></tr>
+          <tr><td><code>track_db()</code></td><td>SQLite in <code>db/store.py</code></td></tr>
+          <tr><td><code>record_route()</code></td><td>verify / qa / local at gate</td></tr>
+          <tr><td><code>record_llm_fallback()</code></td><td>Rules scorer used instead of LLM</td></tr>
+        </table>
+      </div>
+      <div class="slide-viz">
+        <pre>async with track_task_async("llm_assess"):
+    assessment = await assess_transcript(...)
+
+with track_task("verify_transcript_math"):
+    result = verify_transcript_math(pdf)
+
+with track_db("insert_verification"):
+    conn.execute(...)</pre>
+        <div class="card green" style="margin-top:0.75rem">
+          <h3>Pattern</h3>
+          <p style="font-size:0.9rem">Context manager times the block, records success or error, then exposes via <code>/metrics</code>. If <code>AGENT_METRICS_ENABLED=false</code>, wrappers are no-ops — zero overhead.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide">
+      <h2>Prometheus metric types (and ours)</h2>
+      <div class="three-col">
+        <div class="type-card counter">
+          <div class="label">Counter — only goes up</div>
+          <p><code>agent_task_total</code></p>
+          <p><code>agent_route_total</code></p>
+          <p><code>agent_task_errors_total</code></p>
+          <p><code>agent_llm_fallback_total</code></p>
+          <p style="font-size:0.88rem;color:var(--muted);margin-top:0.5rem">Grafana uses <code>rate()</code> or shows lifetime total in stat panels.</p>
+        </div>
+        <div class="type-card gauge">
+          <div class="label">Gauge — current value</div>
+          <p><code>agent_process_cpu_percent</code></p>
+          <p><code>agent_process_memory_bytes</code></p>
+          <p><code>agent_host_cpu_percent</code></p>
+          <p><code>agent_host_memory_*</code></p>
+          <p style="font-size:0.88rem;color:var(--muted);margin-top:0.5rem">Updated every 5s by background thread — not on each request.</p>
+        </div>
+        <div class="type-card histogram">
+          <div class="label">Histogram — latency buckets</div>
+          <p><code>agent_task_duration_seconds</code></p>
+          <p><code>agent_cache_io_seconds</code></p>
+          <p><code>agent_db_seconds</code></p>
+          <p style="font-size:0.88rem;color:var(--muted);margin-top:0.5rem">Grafana computes avg, p95 from buckets. Each verify adds samples.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide split">
+      <div class="slide-text">
+        <h2>Prometheus configuration</h2>
+        <p>File: <code>monitoring/prometheus/prometheus.yml</code></p>
+        <pre>scrape_interval: 15s
+
+scrape_configs:
+  - job_name: transcript-agent
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:9464"]</pre>
+        <p style="font-size:0.92rem;margin-top:0.5rem">Check target health: <strong>localhost:9090/targets</strong> → should show <span class="green">UP</span>.</p>
+        <p style="font-size:0.92rem">If DOWN: agent not running, metrics disabled, or wrong port.</p>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="20" width="130" height="70" rx="10" fill="#f8faff" stroke="#dadce0" stroke-width="2"/>
+            <text x="75" y="48" text-anchor="middle" fill="#202124" font-size="12" font-weight="600">Windows host</text>
+            <text x="75" y="68" text-anchor="middle" fill="#1a73e8" font-size="10">adk web :8000</text>
+            <text x="75" y="82" text-anchor="middle" fill="#e6522c" font-size="10">metrics :9464</text>
+            <rect x="180" y="20" width="130" height="160" rx="10" fill="#fde8e4" stroke="#e6522c" stroke-width="2"/>
+            <text x="245" y="48" text-anchor="middle" fill="#e6522c" font-size="12" font-weight="600">Docker</text>
+            <text x="245" y="72" text-anchor="middle" fill="#5f6368" font-size="10">Prometheus</text>
+            <text x="245" y="92" text-anchor="middle" fill="#5f6368" font-size="10">Grafana</text>
+            <text x="245" y="112" text-anchor="middle" fill="#5f6368" font-size="10">Alertmanager</text>
+            <path d="M140 55 Q160 55 160 75 Q160 95 180 95" fill="none" stroke="#e6522c" stroke-width="2" marker-end="url(#a1)"/>
+            <text x="160" y="130" text-anchor="middle" fill="#5f6368" font-size="9">host.docker.internal</text>
+            <text x="160" y="145" text-anchor="middle" fill="#5f6368" font-size="9">pulls :9464 every 15s</text>
+          </svg>
+        </div>
+        <div class="card prom" style="margin-top:0.75rem">
+          <p style="font-size:0.88rem;margin:0"><strong>Alerts</strong> in <code>prometheus/alerts.yml</code> — metrics down 2m, error rate high 5m. View at :9090/alerts</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide">
+      <h2>Grafana dashboard — panel map</h2>
+      <p class="subtitle" style="margin-bottom:0.5rem">File: <code>grafana/dashboards/transcript-agent.json</code> · Open <strong>http://localhost:3001</strong></p>
+      <table>
+        <tr><th>Panel</th><th>Prometheus query (simplified)</th><th>What it tells you</th></tr>
+        <tr><td>Verifies / Q&amp;A stats</td><td><code>agent_route_total{route="verify"}</code></td><td>How many times each route ran since agent restart</td></tr>
+        <tr><td>Task rate</td><td><code>rate(agent_task_total[5m])</code></td><td>Throughput per workflow step</td></tr>
+        <tr><td>Latency avg / p95</td><td><code>agent_task_duration_seconds</code></td><td>Which step is slow (LLM usually wins)</td></tr>
+        <tr><td>Process / Host CPU</td><td><code>agent_process_cpu_percent</code></td><td>Agent vs whole machine load</td></tr>
+        <tr><td>Memory</td><td><code>agent_process_memory_bytes</code></td><td>RSS growth during PDF/LLM work</td></tr>
+        <tr><td>Cache I/O</td><td><code>agent_cache_io_seconds</code></td><td>PDF render time (verify only)</td></tr>
+        <tr><td>DB time</td><td><code>agent_db_seconds</code></td><td>SQLite latency per operation</td></tr>
+        <tr><td>LLM fallback</td><td><code>agent_llm_fallback_total</code></td><td>0 = healthy; &gt;0 = Ollama/Gemini failed</td></tr>
+        <tr><td>Errors</td><td><code>agent_task_errors_total</code></td><td>Exceptions in workflow nodes</td></tr>
+      </table>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide split">
+      <div class="slide-text">
+        <h2>Why CPU shows 0% sometimes</h2>
+        <ul>
+          <li>Windows cannot measure CPU from a single HTTP scrape</li>
+          <li>We run a <strong>daemon thread</strong> that samples psutil every <strong>5 seconds</strong></li>
+          <li>Wait ~10s after starting the agent before expecting CPU panels to move</li>
+          <li><strong>0% process CPU when idle is normal</strong> — Python waits for requests</li>
+          <li><strong>Host CPU</strong> may stay &gt;0 if Ollama or Docker are busy</li>
+        </ul>
+        <div class="card blue" style="margin-top:0.75rem">
+          <p style="font-size:0.9rem;margin:0">Run a verify while watching Grafana — you should see spikes on render, math, and especially <code>llm_assess</code>.</p>
+        </div>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+            <text x="160" y="20" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="600">Process CPU over time</text>
+            <polyline points="30,150 60,148 90,145 120,100 150,40 180,50 210,145 240,148 270,150 290,150" fill="none" stroke="#1a73e8" stroke-width="2.5"/>
+            <line x1="30" y1="150" x2="290" y2="150" stroke="#dadce0"/>
+            <text x="120" y="95" fill="#e8710a" font-size="9">↑ verify + LLM</text>
+            <text x="230" y="140" fill="#5f6368" font-size="9">idle 0%</text>
+          </svg>
+          <p class="viz-caption">Spike during work, flat between requests</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide">
+      <h2>Hands-on demo — follow along</h2>
+      <div class="step-grid">
+        <div class="step-item"><div class="num">1</div><strong>Enable metrics</strong><p><code>AGENT_METRICS_ENABLED=true</code> in code/.env</p></div>
+        <div class="step-item"><div class="num">2</div><strong>Start stack</strong><p><code>cd monitoring && docker compose up -d</code></p></div>
+        <div class="step-item"><div class="num">3</div><strong>Start agent</strong><p><code>adk web</code> → code_local (restart if env changed)</p></div>
+        <div class="step-item"><div class="num">4</div><strong>Check scrape</strong><p>9090/targets → UP</p></div>
+      </div>
+      <div class="two-col" style="margin-top:1rem">
+        <div class="card green">
+          <h3>Generate metrics</h3>
+          <pre style="margin:0.4rem 0 0">Verify the transcript at code/pdf/sample.pdf
+How did you compute 24.0?
+/model</pre>
+        </div>
+        <div class="card graf">
+          <h3>Watch Grafana (:3001)</h3>
+          <ul style="font-size:0.92rem">
+            <li>Stat row: verifies, Q&amp;A counts increase</li>
+            <li>Latency bars: llm_assess tallest</li>
+            <li>Routes graph: verify + qa lines</li>
+            <li>Refresh · time range Last 15 minutes</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 12 -->
+    <section class="slide">
+      <h2>Troubleshooting — quick fixes</h2>
+      <table>
+        <tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+        <tr><td>All panels empty</td><td>Metrics off or agent not restarted</td><td>Set env, restart <code>adk web</code></td></tr>
+        <tr><td>Prometheus target DOWN</td><td>Nothing listening on :9464</td><td>Check <code>/metrics</code> in browser</td></tr>
+        <tr><td>Cache I/O empty</td><td>Q&amp;A only (PNG already cached)</td><td>Run a full PDF verify</td></tr>
+        <tr><td>DB time empty</td><td><code>AGENT_DB_ENABLED=false</code></td><td>Enable SQLite in .env</td></tr>
+        <tr><td>LLM fallback = 0</td><td>LLM succeeded</td><td>That's good! Stop Ollama to demo fallback</td></tr>
+        <tr><td>Stats reset to 0</td><td>Counters reset on agent restart</td><td>Expected — counters are per process lifetime</td></tr>
+      </table>
+    </section>
+
+    <!-- 13 -->
+    <section class="slide">
+      <h2>Takeaways — how to think about it</h2>
+      <div class="cheat-grid">
+        <div class="cheat-item"><strong>Instrument in Python</strong><br/>Wrap workflow steps with <code>track_task*</code> in <code>agent.py</code></div>
+        <div class="cheat-item"><strong>Expose on host</strong><br/><code>:9464/metrics</code> text endpoint via prometheus_client</div>
+        <div class="cheat-item"><strong>Collect in Docker</strong><br/>Prometheus pulls every 15s via <code>host.docker.internal</code></div>
+        <div class="cheat-item"><strong>Visualize in Grafana</strong><br/>Dashboard queries Prometheus — you never edit agent code to change charts</div>
+        <div class="cheat-item"><strong>6 tasks = Goal 3</strong><br/>Gate, render, math, spatial, LLM assess, Q&amp;A — each timed separately</div>
+        <div class="cheat-item"><strong>Zero cost when off</strong><br/><code>AGENT_METRICS_ENABLED=false</code> → all wrappers skip instantly</div>
+      </div>
+      <div class="card prom" style="margin-top:1rem;text-align:center">
+        <p style="font-size:1.05rem;margin:0"><strong>Next step:</strong> open Grafana, run one verify, and match each panel to a metric name from this deck.</p>
+      </div>
+    </section>
+
+    <!-- 14 -->
+    <section class="slide title-slide">
+      <h1>You’re ready to demo Goal 3</h1>
+      <p class="subtitle">Agent instruments → Prometheus stores → Grafana shows</p>
+      <p style="margin-top:1.5rem;color:var(--muted)">
+        Grafana: <span class="prom">localhost:3001</span> · Prometheus: <span class="prom">localhost:9090</span><br/>
+        Metrics: <span class="accent">localhost:9464/metrics</span> · Docs: <code>monitoring/README.md</code>
+      </p>
+    </section>
+
+  </div>
+
+  <nav class="nav">
+    <span>← → or Space · F fullscreen · <a href="../index.html" style="color:var(--accent)">Main workshop deck</a></span>
+    <span id="slideCounter">1 / 14</span>
+  </nav>
+
+  <script>
+    const slides = document.querySelectorAll(".slide");
+    const progressBar = document.getElementById("progressBar");
+    const counter = document.getElementById("slideCounter");
+    let current = 0;
+
+    function showSlide(n) {
+      slides[current].classList.remove("active");
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add("active");
+      progressBar.style.width = ((current + 1) / slides.length * 100) + "%";
+      counter.textContent = (current + 1) + " / " + slides.length;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        e.preventDefault(); showSlide(current + 1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault(); showSlide(current - 1);
+      } else if (e.key === "Home") showSlide(0);
+      else if (e.key === "End") showSlide(slides.length - 1);
+      else if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }
+    });
+
+    let touchStartX = 0;
+    document.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; });
+    document.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) showSlide(current + (dx < 0 ? 1 : -1));
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>

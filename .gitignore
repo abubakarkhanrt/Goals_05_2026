@@ -1,0 +1,14 @@
+# Local runtime data
+.session_cache/
+
+# Python
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Environment
+code/.env
+Plan
+Step-by-step-Implementation

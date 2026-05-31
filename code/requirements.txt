@@ -1,0 +1,20 @@
+# Phase 1: Foundation & Environment
+# Install in project venv: pip install -r code/requirements.txt
+# ADK 2.x: https://pypi.org/project/google-adk/ (pinned 2.1.0)
+# Note: PyMuPDF is installed as 'pymupdf' on PyPI
+
+google-adk[extensions]==2.1.0
+pydantic>=2.0.0
+pdfplumber>=0.11.0
+pymupdf>=1.24.0
+
+# Testing (Phase 4)
+pytest>=7.0.0
+
+# Observability (monitoring/ — Prometheus metrics)
+prometheus_client>=0.21.0
+psutil>=5.9.0
+
+# OCR fallback for scanned PDFs (optional; requires Tesseract installed on system)
+pytesseract>=0.3.10
+Pillow>=9.0.0
