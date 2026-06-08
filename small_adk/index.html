@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Riddle Agent — ADK 2.1 Workshop Lab</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --accent: #1a73e8;
+      --accent-soft: #e8f0fe;
+      --green: #188038;
+      --green-soft: #e6f4ea;
+      --warn: #e8710a;
+      --warn-soft: #fef7e0;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --shadow: 0 4px 18px rgba(60, 64, 67, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(160deg, var(--bg) 0%, #eef2ff 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 2rem 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.35rem; }
+    header p { color: var(--muted); font-size: 1.05rem; max-width: 760px; }
+    main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      font-size: 1.35rem;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--accent-soft);
+    }
+    h3 { font-size: 1.05rem; color: var(--green); margin: 1rem 0 0.5rem; }
+    p, li { font-size: 1rem; margin-bottom: 0.6rem; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 0.75rem; }
+    code {
+      background: #f1f3f4;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.92em;
+    }
+    pre {
+      background: #1e1e2e;
+      color: #e2e8f0;
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.88rem;
+      margin: 0.75rem 0;
+    }
+    .tag {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #c2d7f7;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-right: 0.4rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      margin: 0.75rem 0;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.75rem;
+      text-align: left;
+    }
+    th { background: var(--accent-soft); color: var(--accent); }
+    .diagram {
+      background: var(--green-soft);
+      border: 1px solid #b7dfc9;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      white-space: pre;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+    .contrast {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 0.75rem 0;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      background: var(--bg);
+    }
+    .card h3 { margin-top: 0; }
+    .note {
+      background: var(--warn-soft);
+      border-left: 4px solid var(--warn);
+      padding: 0.75rem 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 0.75rem 0;
+      font-size: 0.95rem;
+    }
+    @media (max-width: 700px) {
+      .contrast { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="tag">Google ADK 2.1</span>
+    <span class="tag">Workshop lab</span>
+    <h1>Riddle Agent (<code>small_adk</code>)</h1>
+    <p>
+      A small multi-file agent that teaches <strong>LlmAgent + FunctionTools</strong>,
+      <strong>ADK callbacks</strong> (cloud→local fallback), and how that differs from
+      a full <strong>Workflow</strong> pipeline in the parent repo.
+    </p>
+  </header>
+
+  <main>
+    <section id="what-is-agent">
+      <h2>1. What is an AI agent?</h2>
+      <p>
+        An <strong>AI agent</strong> uses a language model to decide <em>what to do next</em> —
+        not just what to say. It can call <strong>tools</strong> (Python functions) to fetch data,
+        update session state, and run multi-step reasoning across turns.
+      </p>
+      <ul>
+        <li><strong>Chatbot</strong> — text in, text out, no side effects.</li>
+        <li><strong>Agent</strong> — may call tools, keeps secrets in session state, branches on user input.</li>
+      </ul>
+      <p>
+        This lab plays a riddle game: load riddles, validate guesses, give hints,
+        reveal answers only on give-up, and exit cleanly with <code>/exit</code>.
+      </p>
+    </section>
+
+    <section id="adk-workflows">
+      <h2>2. Google ADK 2.1 — Agents &amp; Workflows</h2>
+      <p>
+        <a href="https://google.github.io/adk-docs/" target="_blank" rel="noopener">Google ADK</a>
+        (Agent Development Kit) version <strong>2.1</strong> offers two orchestration styles:
+      </p>
+
+      <div class="contrast">
+        <div class="card">
+          <h3>LlmAgent (<code>Agent</code>)</h3>
+          <p>The LLM chooses when to call tools. Good for interactive, branching tasks.</p>
+          <p><strong>This lab uses this pattern.</strong></p>
+        </div>
+        <div class="card">
+          <h3>Workflow</h3>
+          <p>A directed graph of nodes (gates, routers, tool nodes). Tools are invoked by the graph — not by LLM tool-calling.</p>
+          <p>See the main <code>code/agent.py</code> transcript verifier in the parent repo.</p>
+        </div>
+      </div>
+
+      <div class="diagram">User message
+    │
+    ▼
+┌─────────────────────┐     ┌────────────────────────────────────┐
+│  LlmAgent           │────▶│  tools.py (8 FunctionTools)          │
+│  (agent.py)         │     │  start_riddle, check_answer, ...   │
+│  LLM + callbacks    │◀────│  game.py holds secret answers      │
+└─────────────────────┘     └────────────────────────────────────┘
+         │
+         ▼
+   runtime.py — before_model / after_model / on_model_error
+                (Gemini 503 → Ollama + offline riddles)
+
+vs.
+
+User message → Workflow gate → route → tool nodes → LLM assess (main project)</div>
+    </section>
+
+    <section id="code-layout">
+      <h2>3. Code layout — read in this order</h2>
+      <ol>
+        <li><code>riddles.json</code> + <code>constants.py</code> — data and shared keys</li>
+        <li><code>game.py</code> — session state, guess/hint/exit logic, local-fallback handler</li>
+        <li><code>tools.py</code> — eight ADK FunctionTools the LLM calls</li>
+        <li><code>runtime.py</code> — LLM routing, connectivity, ADK callbacks</li>
+        <li><code>agent.py</code> — instruction + <code>root_agent</code> wiring (~100 lines)</li>
+      </ol>
+
+      <div class="diagram">riddles.json ──▶ riddles.py
+constants.py ──┐
+               ├──▶ game.py ◀── runtime.py (callbacks import game helpers)
+               └──▶ tools.py ──▶ game.py
+agent.py ── imports tools.py + runtime.py ──▶ root_agent</div>
+    </section>
+
+    <section id="how-it-works">
+      <h2>4. Runtime modes</h2>
+      <p>The agent picks its LLM and riddle source at startup (override with <code>.env</code>):</p>
+
+      <table>
+        <thead>
+          <tr><th>Condition</th><th>LLM</th><th>Riddle source</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Internet + <code>GOOGLE_API_KEY</code></td><td>Gemini (cloud)</td><td>Online API → LLM-generated fallback</td></tr>
+          <tr><td>Internet, no API key</td><td>Ollama (local)</td><td>Online API → LLM-generated fallback</td></tr>
+          <tr><td>Internet off</td><td>Ollama (local)</td><td>8 offline riddles (<code>riddles.json</code>)</td></tr>
+          <tr><td>Gemini 503 / rate limit</td><td>Ollama (auto-fallback)</td><td>Offline riddles via deterministic handler — <strong>resend your message</strong></td></tr>
+          <tr><td><code>WORKSHOP_MODE=local</code></td><td>Ollama (forced)</td><td>Offline riddles only — best for live demos</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Extension pattern: ADK callbacks (<code>runtime.py</code>)</h3>
+      <table>
+        <thead>
+          <tr><th>Callback</th><th>What it does</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>before_model_callback</code></td><td>On fallback: short-circuit to <code>game.py</code> (no Ollama tool loop). Handles <code>/exit</code> instantly.</td></tr>
+          <tr><td><code>after_model_callback</code></td><td>Remap hallucinated tool names (e.g. <code>riddle_master</code> → <code>start_riddle</code>)</td></tr>
+          <tr><td><code>on_model_error_callback</code></td><td>Gemini 503/429 → switch to Ollama, ask user to resend</td></tr>
+          <tr><td><code>on_tool_error_callback</code></td><td>Recover from invented tool names without crashing</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Tools (<code>tools.py</code>)</h3>
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>start_riddle</code></td><td><strong>Preferred.</strong> Cached connectivity probe + load riddle in one LLM step</td></tr>
+          <tr><td><code>check_internet</code></td><td>Probe connectivity (result cached 60s per session)</td></tr>
+          <tr><td><code>fetch_online_riddle</code></td><td>HTTP API fetch; LLM generation on API failure</td></tr>
+          <tr><td><code>get_local_riddle</code></td><td>Random offline riddle from <code>riddles.json</code></td></tr>
+          <tr><td><code>check_answer</code></td><td>Normalized match; never returns the secret answer</td></tr>
+          <tr><td><code>give_hint</code></td><td>Pre-stored hints (offline) or LLM-generated (online)</td></tr>
+          <tr><td><code>reveal_answer</code></td><td>Only when the user explicitly gives up</td></tr>
+          <tr><td><code>exit_game</code></td><td>End the game — also triggered by <code>/exit</code>, quit, stop</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Game flow</h3>
+      <ol>
+        <li><code>Let's play</code> or <code>new riddle</code> → <code>start_riddle</code> → question only (no answer)</li>
+        <li>Wrong guess → <em>“Are you sure? Is that your final answer?”</em></li>
+        <li>Confirmed wrong → keep trying / hint — <strong>no</strong> auto-reveal</li>
+        <li><code>give up</code> → <code>reveal_answer</code></li>
+        <li>Correct → immediate congratulations</li>
+        <li><code>/exit</code> → leave game; say <code>Let's play</code> to start again</li>
+      </ol>
+
+      <div class="note">
+        <strong>Design rule:</strong> The correct answer lives in ADK session state.
+        Tools never leak it to the LLM until <code>reveal_answer</code> runs.
+        On cloud fallback, <code>game.py</code> runs the game deterministically (no small-model tool loops).
+      </div>
+    </section>
+
+    <section id="setup">
+      <h2>5. Setup</h2>
+      <h3>Prerequisites</h3>
+      <ul>
+        <li><strong>Python 3.11+</strong> — required. System <code>python3</code> on 3.8/3.10 only finds <code>google-adk 0.0.1</code> and fails.</li>
+        <li><a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> running (<code>ollama serve</code>) with your model pulled</li>
+        <li>Optional: <code>GOOGLE_API_KEY</code> for Gemini when online</li>
+      </ul>
+
+      <div class="note">
+        <strong>Python check:</strong> <code>python3.11 --version</code> must work before creating the venv.
+        Do not use bare <code>python3 -m venv</code> if it points to 3.8.
+      </div>
+
+      <h3>Install &amp; run</h3>
+      <pre>cd small_adk
+python3.11 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+python --version                  # must show 3.11.x
+pip install --upgrade pip
+pip install -r requirements.txt   # google-adk + litellm (~300 MB)
+cp .env.example .env              # add GOOGLE_API_KEY if you have one
+
+# From the parent of small_adk/ (folder that contains small_adk):
+adk web
+# → select small_adk</pre>
+
+      <h3>Recommended <code>.env</code> for workshop demos</h3>
+      <pre>WORKSHOP_MODE=local
+SKIP_STARTUP_PROBE=true
+OLLAMA_MODEL=ollama/your-model
+OLLAMA_API_BASE=http://localhost:11434
+GOOGLE_GENAI_USE_VERTEXAI=FALSE</pre>
+
+      <h3>All <code>.env</code> toggles</h3>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Effect</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>GOOGLE_API_KEY</code></td><td>Enables Gemini when online</td></tr>
+          <tr><td><code>GOOGLE_GENAI_USE_VERTEXAI</code></td><td>Must be <code>FALSE</code> for API keys (not Vertex OAuth)</td></tr>
+          <tr><td><code>CLOUD_MODEL</code></td><td>Gemini model name (e.g. <code>gemini-2.5-flash</code>)</td></tr>
+          <tr><td><code>OLLAMA_MODEL</code> / <code>OLLAMA_API_BASE</code></td><td>Local model and endpoint (ngrok OK)</td></tr>
+          <tr><td><code>WORKSHOP_MODE=local</code></td><td>Force Ollama + offline riddles</td></tr>
+          <tr><td><code>SKIP_STARTUP_PROBE=true</code></td><td>Skip 3s internet probe at startup</td></tr>
+          <tr><td><code>CONNECTIVITY_CACHE_TTL=60</code></td><td>Reuse <code>check_internet</code> result (seconds)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="note">
+        <strong>401 with API key?</strong> Set <code>GOOGLE_GENAI_USE_VERTEXAI=FALSE</code>.
+        Vertex AI requires OAuth / service-account auth — not a <code>GOOGLE_API_KEY</code>.
+      </div>
+    </section>
+
+    <section id="demo">
+      <h2>6. Workshop demo script (~10 min)</h2>
+      <ol>
+        <li>Start: <code>adk web</code> → select <strong>small_adk</strong></li>
+        <li><code>Let's play</code> — trace shows <code>start_riddle</code> (one tool call)</li>
+        <li>Guess wrong → agent asks for final confirmation</li>
+        <li><code>hint</code> → pre-stored or generated hint</li>
+        <li><code>give up</code> → <code>reveal_answer</code> in trace</li>
+        <li><code>/exit</code> → game ends; <code>Let's play</code> starts fresh</li>
+        <li><strong>Fallback beat (optional):</strong> if Gemini 503s → resend message → offline riddle via Ollama path</li>
+        <li><strong>Offline beat:</strong> set <code>WORKSHOP_MODE=local</code> or disconnect Wi‑Fi → <code>new riddle</code></li>
+      </ol>
+
+      <h3>Copy-paste prompts</h3>
+      <pre>Let's play
+keyboard
+yes
+hint
+give up
+new riddle
+/exit
+Let's play</pre>
+    </section>
+
+    <section id="files">
+      <h2>7. Project files</h2>
+      <table>
+        <thead>
+          <tr><th>File</th><th>Role</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>riddles.json</code></td><td>8 offline riddles with hint ladders</td></tr>
+          <tr><td><code>riddles.py</code></td><td>Loads <code>riddles.json</code> at import</td></tr>
+          <tr><td><code>constants.py</code></td><td>Session keys, regex patterns, tool names</td></tr>
+          <tr><td><code>game.py</code></td><td>Game logic, session state, local-fallback handler</td></tr>
+          <tr><td><code>tools.py</code></td><td>8 FunctionTools incl. <code>start_riddle</code></td></tr>
+          <tr><td><code>runtime.py</code></td><td>LLM routing, cached probe, ADK callbacks</td></tr>
+          <tr><td><code>agent.py</code></td><td>Instruction + <code>root_agent</code> export</td></tr>
+          <tr><td><code>__init__.py</code></td><td>Package entry — re-exports <code>root_agent</code></td></tr>
+          <tr><td><code>requirements.txt</code></td><td><code>google-adk</code> + <code>litellm</code> (slim install)</td></tr>
+          <tr><td><code>.env.example</code></td><td>API keys, models, workshop toggles</td></tr>
+          <tr><td><code>index.html</code></td><td>This lab guide</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

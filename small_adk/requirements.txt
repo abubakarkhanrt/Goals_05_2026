@@ -1,0 +1,6 @@
+# Requires Python 3.11+ (google-adk 2.x does not support 3.8/3.9/3.10).
+# Create venv with: python3.11 -m venv venv
+# Slim install: google-adk + litellm only (~300MB vs ~1.4GB for [extensions]):
+google-adk==2.1.0
+litellm>=1.0.0
+python-dotenv>=1.0.0
