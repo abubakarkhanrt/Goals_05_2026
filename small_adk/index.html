@@ -7,377 +7,864 @@
   <style>
     :root {
       --bg: #f4f6fb;
+      --bg2: #e8eef8;
       --surface: #ffffff;
+      --surface2: #f8faff;
       --accent: #1a73e8;
       --accent-soft: #e8f0fe;
-      --green: #188038;
-      --green-soft: #e6f4ea;
+      --accent2: #188038;
+      --accent2-soft: #e6f4ea;
       --warn: #e8710a;
       --warn-soft: #fef7e0;
+      --purple: #7c3aed;
+      --purple-soft: #f3e8ff;
       --text: #202124;
       --muted: #5f6368;
       --border: #dadce0;
-      --shadow: 0 4px 18px rgba(60, 64, 67, 0.1);
+      --shadow: 0 8px 28px rgba(60, 64, 67, 0.12);
+      --shadow-sm: 0 2px 8px rgba(60, 64, 67, 0.08);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-      background: linear-gradient(160deg, var(--bg) 0%, #eef2ff 100%);
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #eef2ff 100%);
       color: var(--text);
-      line-height: 1.6;
+      overflow: hidden;
+      height: 100vh;
     }
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 2rem 2rem 1.5rem;
-      box-shadow: var(--shadow);
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(26, 115, 232, 0.08) 0%, transparent 42%),
+        radial-gradient(circle at 88% 82%, rgba(24, 128, 56, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 70% 10%, rgba(124, 58, 237, 0.06) 0%, transparent 35%);
+      pointer-events: none;
+      z-index: 0;
     }
-    header h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.35rem; }
-    header p { color: var(--muted); font-size: 1.05rem; max-width: 760px; }
-    main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-    section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem 1.75rem;
-      margin-bottom: 1.5rem;
-      box-shadow: var(--shadow);
+    .deck { height: 100vh; position: relative; z-index: 1; }
+    .slide {
+      display: none;
+      height: 100vh;
+      padding: 2.5rem 3.5rem 4.5rem;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 1180px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
     }
+    .slide.active { display: flex; }
+    .slide.split { flex-direction: row; align-items: center; gap: 2.5rem; }
+    .slide.split .slide-text { flex: 1; min-width: 0; }
+    .slide.split .slide-viz { flex: 0 0 42%; max-width: 480px; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 { font-size: 2.5rem; font-weight: 700; line-height: 1.15; margin-bottom: 0.75rem; color: var(--text); }
     h2 {
-      font-size: 1.35rem;
+      font-size: 1.85rem;
       color: var(--accent);
-      margin-bottom: 0.75rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 2px solid var(--accent-soft);
+      margin-bottom: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
-    h3 { font-size: 1.05rem; color: var(--green); margin: 1rem 0 0.5rem; }
-    p, li { font-size: 1rem; margin-bottom: 0.6rem; }
-    ul, ol { padding-left: 1.4rem; margin-bottom: 0.75rem; }
-    code {
-      background: #f1f3f4;
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.92em;
-    }
-    pre {
-      background: #1e1e2e;
-      color: #e2e8f0;
-      padding: 1rem 1.25rem;
-      border-radius: 8px;
-      overflow-x: auto;
-      font-size: 0.88rem;
-      margin: 0.75rem 0;
-    }
+    h3 { font-size: 1.05rem; color: var(--accent2); margin: 1rem 0 0.5rem; font-weight: 600; }
+    p, li { font-size: 1.05rem; line-height: 1.55; color: var(--text); }
+    .subtitle { font-size: 1.25rem; color: var(--muted); margin-bottom: 1.5rem; }
     .tag {
       display: inline-block;
       background: var(--accent-soft);
-      color: var(--accent);
       border: 1px solid #c2d7f7;
-      padding: 0.2rem 0.65rem;
+      padding: 0.3rem 0.85rem;
       border-radius: 999px;
       font-size: 0.82rem;
       font-weight: 600;
-      margin-right: 0.4rem;
+      color: var(--accent);
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
     }
+    .tag.green { background: var(--accent2-soft); border-color: #b7dfc0; color: var(--accent2); }
+    .tag.purple { background: var(--purple-soft); border-color: #ddd6fe; color: var(--purple); }
+    .tag.warn { background: var(--warn-soft); border-color: #f9d8a8; color: var(--warn); }
+    ul { margin-left: 1.25rem; margin-top: 0.5rem; }
+    li { margin-bottom: 0.45rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 0.75rem; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .card.accent { border-top: 4px solid var(--accent); }
+    .card.green { border-top: 4px solid var(--accent2); }
+    .card.warn { border-top: 4px solid var(--warn); }
+    .card.purple { border-top: 4px solid var(--purple); }
+    .card h3 { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; }
+    .card-icon {
+      width: 2rem; height: 2rem; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .card-icon.blue { background: var(--accent-soft); }
+    .card-icon.green { background: var(--accent2-soft); }
+    .card-icon.orange { background: var(--warn-soft); }
+    .card-icon.purple { background: var(--purple-soft); }
+    pre, code {
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.82rem;
+    }
+    pre {
+      background: #1e293b;
+      border: none;
+      border-radius: 12px;
+      padding: 0.9rem 1.1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+      line-height: 1.45;
+      color: #e2e8f0;
+      box-shadow: var(--shadow-sm);
+    }
+    .diagram {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      white-space: pre;
+      overflow-x: auto;
+      color: #334155;
+      box-shadow: var(--shadow-sm);
+    }
+    .viz-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+    .viz-box svg { width: 100%; height: auto; display: block; }
+    .viz-caption { font-size: 0.95rem; color: var(--muted); text-align: center; margin-top: 0.65rem; }
+    .highlight { color: var(--warn); font-weight: 700; }
+    .accent { color: var(--accent); }
+    .green { color: var(--accent2); }
     table {
       width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-      margin: 0.75rem 0;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 0.75rem;
+      font-size: 0.92rem;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
     th, td {
       border: 1px solid var(--border);
-      padding: 0.55rem 0.75rem;
+      padding: 0.55rem 0.85rem;
       text-align: left;
     }
-    th { background: var(--accent-soft); color: var(--accent); }
-    .diagram {
-      background: var(--green-soft);
-      border: 1px solid #b7dfc9;
-      border-radius: 8px;
-      padding: 1rem 1.25rem;
-      font-family: ui-monospace, monospace;
-      font-size: 0.85rem;
-      white-space: pre;
-      overflow-x: auto;
-      margin: 0.75rem 0;
+    th { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+    tr:nth-child(even) td { background: var(--surface2); }
+    .title-slide {
+      background: linear-gradient(120deg, rgba(255,255,255,0.92) 0%, rgba(232,240,254,0.95) 100%);
+      border-radius: 24px;
+      height: calc(100vh - 5.25rem);
+      margin: 1rem auto 4.25rem;
+      max-width: calc(1180px - 2rem);
+      padding: 2rem 3.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid white;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 1.25rem;
     }
-    .contrast {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin: 0.75rem 0;
+    .title-slide .slide-text,
+    .title-slide .slide-viz { flex: none; width: 100%; max-width: 720px; }
+    .title-slide .slide-viz { max-width: 520px; }
+    .title-slide .hero-icons { justify-content: center; }
+    .title-slide .speaker-note {
+      text-align: center;
+      border-left: none;
+      border-top: 4px solid var(--accent);
+      border-radius: 10px;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .card {
-      border: 1px solid var(--border);
-      border-radius: 8px;
+    .title-slide h1 {
+      background: linear-gradient(90deg, var(--accent), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .title-slide .meta { margin-top: 2rem; color: var(--muted); font-size: 0.95rem; }
+    .hero-icons { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .hero-icon {
+      flex: 1; min-width: 100px;
+      background: var(--surface);
+      border-radius: 14px;
       padding: 1rem;
-      background: var(--bg);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
-    .card h3 { margin-top: 0; }
-    .note {
-      background: var(--warn-soft);
-      border-left: 4px solid var(--warn);
+    .hero-icon span { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+    .obj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; margin-top: 0.75rem; }
+    .obj-item {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .obj-item .num {
+      width: 1.75rem; height: 1.75rem; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;
+    }
+    .obj-item p { font-size: 0.92rem; margin: 0; line-height: 1.4; }
+    .takeaway-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    .takeaway-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 1.15rem 1.2rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      border-top: 4px solid var(--accent);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .takeaway-card.green { border-top-color: var(--accent2); }
+    .takeaway-card.warn { border-top-color: var(--warn); }
+    .takeaway-card.purple { border-top-color: var(--purple); }
+    .takeaway-card .tk-icon {
+      width: 2.5rem; height: 2.5rem; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem;
+    }
+    .takeaway-card .tk-icon.blue { background: var(--accent-soft); }
+    .takeaway-card .tk-icon.green { background: var(--accent2-soft); }
+    .takeaway-card .tk-icon.orange { background: var(--warn-soft); }
+    .takeaway-card .tk-icon.purple { background: var(--purple-soft); }
+    .takeaway-card h3 { margin: 0; font-size: 1rem; color: var(--text); line-height: 1.3; }
+    .takeaway-card p { margin: 0; font-size: 0.88rem; color: var(--muted); line-height: 1.45; }
+    .takeaway-banner {
+      margin-top: 1rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: 14px;
+      background: linear-gradient(90deg, var(--accent-soft), var(--accent2-soft));
+      border: 1px solid #c2d7f7;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .stat-row { display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; }
+    .stat-pill {
+      flex: 1; min-width: 90px;
+      background: var(--surface);
+      border-radius: 12px;
       padding: 0.75rem 1rem;
-      border-radius: 0 8px 8px 0;
-      margin: 0.75rem 0;
-      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
     }
-    @media (max-width: 700px) {
-      .contrast { grid-template-columns: 1fr; }
+    .stat-pill .val { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+    .stat-pill .lbl { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+    .stat-pill.green .val { color: var(--accent2); }
+    .stat-pill.warn .val { color: var(--warn); }
+    .nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--border);
+      padding: 0.65rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+      z-index: 10;
+    }
+    .progress {
+      height: 4px;
+      background: rgba(0,0,0,0.06);
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--purple));
+      transition: width 0.3s ease;
+    }
+    .speaker-note {
+      margin-top: 1rem;
+      padding: 0.65rem 1rem;
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .slide.pattern-slide h2 { margin-bottom: 0.35rem; }
+    .slide.pattern-slide .step-item { padding: 0.5rem 0.75rem; }
+    .slide.pattern-slide .step-body h4 { font-size: 0.9rem; }
+    .slide.pattern-slide .step-body p { font-size: 0.8rem; }
+    .slide.pattern-slide .ext-tip,
+    .slide.pattern-slide .cmd-grid { margin-top: 0.5rem; }
+    .slide.pattern-slide .speaker-note { margin-top: 0.65rem; font-size: 0.82rem; }
+    .slide.pattern-slide .slide-text pre { font-size: 0.72rem; margin: 0.5rem 0 0; }
+    .slide.pattern-slide .slide-text table { margin-top: 0.35rem; font-size: 0.84rem; }
+    .slide.pattern-slide .slide-text > ul { margin-top: 0.35rem; font-size: 0.92rem; }
+    .slide.pattern-slide .slide-text > p { font-size: 0.92rem; }
+    .ext-subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 0.85rem;
+      line-height: 1.45;
+    }
+    .step-flow { display: flex; flex-direction: column; gap: 0; margin-top: 0.25rem; }
+    .step-item {
+      display: grid;
+      grid-template-columns: 2.35rem 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.6rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .step-item.accent-line { border-left: 4px solid var(--accent); }
+    .step-item.green-line { border-left: 4px solid var(--accent2); }
+    .step-item.purple-line { border-left: 4px solid var(--purple); }
+    .step-item.warn-line { border-left: 4px solid var(--warn); }
+    .step-num {
+      width: 2.35rem; height: 2.35rem; border-radius: 50%;
+      background: var(--accent); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .step-item.green-line .step-num { background: var(--accent2); }
+    .step-item.purple-line .step-num { background: var(--purple); }
+    .step-item.warn-line .step-num { background: var(--warn); }
+    .step-body h4 { margin: 0 0 0.15rem; font-size: 0.95rem; color: var(--text); font-weight: 600; line-height: 1.3; }
+    .step-body p { margin: 0; font-size: 0.84rem; color: var(--muted); line-height: 1.4; }
+    .ext-tip {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 12px;
+      background: var(--warn-soft);
+      border: 1px solid #f9d8a8;
+      font-size: 0.86rem;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .ext-tip strong { color: var(--warn); }
+    .cmd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.35rem; }
+    .cmd-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.45rem 0.65rem;
+      font-size: 0.8rem;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      color: var(--accent);
+      box-shadow: var(--shadow-sm);
+    }
+    @media (max-width: 900px) {
+      .slide { padding: 2rem 1.5rem 4rem; }
+      .slide.split { flex-direction: column; }
+      .slide.split .slide-viz { flex: 1; max-width: 100%; width: 100%; }
+      .two-col, .obj-grid, .takeaway-grid, .cmd-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.9rem; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <span class="tag">Google ADK 2.1</span>
-    <span class="tag">Workshop lab</span>
-    <h1>Riddle Agent (<code>small_adk</code>)</h1>
-    <p>
-      A small multi-file agent that teaches <strong>LlmAgent + FunctionTools</strong>,
-      <strong>ADK callbacks</strong> (cloud→local fallback), and how that differs from
-      a full <strong>Workflow</strong> pipeline in the parent repo.
-    </p>
-  </header>
+  <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="deck" id="deck">
 
-  <main>
-    <section id="what-is-agent">
-      <h2>1. What is an AI agent?</h2>
-      <p>
-        An <strong>AI agent</strong> uses a language model to decide <em>what to do next</em> —
-        not just what to say. It can call <strong>tools</strong> (Python functions) to fetch data,
-        update session state, and run multi-step reasoning across turns.
-      </p>
-      <ul>
-        <li><strong>Chatbot</strong> — text in, text out, no side effects.</li>
-        <li><strong>Agent</strong> — may call tools, keeps secrets in session state, branches on user input.</li>
-      </ul>
-      <p>
-        This lab plays a riddle game: load riddles, validate guesses, give hints,
-        reveal answers only on give-up, and exit cleanly with <code>/exit</code>.
-      </p>
-    </section>
-
-    <section id="adk-workflows">
-      <h2>2. Google ADK 2.1 — Agents &amp; Workflows</h2>
-      <p>
-        <a href="https://google.github.io/adk-docs/" target="_blank" rel="noopener">Google ADK</a>
-        (Agent Development Kit) version <strong>2.1</strong> offers two orchestration styles:
-      </p>
-
-      <div class="contrast">
-        <div class="card">
-          <h3>LlmAgent (<code>Agent</code>)</h3>
-          <p>The LLM chooses when to call tools. Good for interactive, branching tasks.</p>
-          <p><strong>This lab uses this pattern.</strong></p>
+    <!-- SLIDE 1 -->
+    <section class="slide active title-slide">
+      <div class="slide-text">
+        <span class="tag">Workshop lab</span>
+        <span class="tag green">Google ADK 2.1</span>
+        <h1>Riddle Agent (<code>small_adk</code>)</h1>
+        <p class="subtitle">LlmAgent + FunctionTools · ADK callbacks · Cloud→local fallback</p>
+        <p>A minimal multi-file agent — compare with the full <strong class="accent">Workflow</strong> pipeline in the parent repo.</p>
+        <div class="speaker-note">Goal: Run, extend, and demo a real ADK agent in ~10 minutes.</div>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="gBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1a73e8"/><stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+            </defs>
+            <rect x="100" y="30" width="120" height="48" rx="14" fill="url(#gBlue)"/>
+            <text x="160" y="52" text-anchor="middle" fill="white" font-size="11" font-weight="700">riddle_master</text>
+            <text x="160" y="68" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8">LlmAgent + callbacks</text>
+            <line x1="160" y1="78" x2="60" y2="110" stroke="#1a73e8" stroke-width="1.5"/>
+            <line x1="160" y1="78" x2="160" y2="110" stroke="#188038" stroke-width="1.5"/>
+            <line x1="160" y1="78" x2="260" y2="110" stroke="#e8710a" stroke-width="1.5"/>
+            <rect x="20" y="110" width="80" height="32" rx="8" fill="#e8f0fe" stroke="#1a73e8"/>
+            <text x="60" y="130" text-anchor="middle" fill="#1a73e8" font-size="9" font-weight="600">tools.py</text>
+            <rect x="120" y="110" width="80" height="32" rx="8" fill="#e6f4ea" stroke="#188038"/>
+            <text x="160" y="130" text-anchor="middle" fill="#188038" font-size="9" font-weight="600">game.py</text>
+            <rect x="220" y="110" width="80" height="32" rx="8" fill="#fef7e0" stroke="#e8710a"/>
+            <text x="260" y="130" text-anchor="middle" fill="#e8710a" font-size="9" font-weight="600">runtime.py</text>
+            <rect x="70" y="165" width="180" height="52" rx="12" fill="#f3e8ff" stroke="#7c3aed"/>
+            <text x="160" y="188" text-anchor="middle" fill="#7c3aed" font-size="10" font-weight="700">Gemini → Ollama fallback</text>
+            <text x="160" y="204" text-anchor="middle" fill="#5f6368" font-size="8">offline riddles · deterministic game</text>
+          </svg>
+          <p class="viz-caption">Small agent at a glance</p>
         </div>
-        <div class="card">
-          <h3>Workflow</h3>
-          <p>A directed graph of nodes (gates, routers, tool nodes). Tools are invoked by the graph — not by LLM tool-calling.</p>
-          <p>See the main <code>code/agent.py</code> transcript verifier in the parent repo.</p>
+        <div class="hero-icons">
+          <div class="hero-icon"><span style="font-size:1.5rem">🧩</span><span>8 tools</span></div>
+          <div class="hero-icon"><span style="font-size:1.5rem">🔄</span><span>Fallback</span></div>
+          <div class="hero-icon"><span style="font-size:1.5rem">📖</span><span>8 riddles</span></div>
         </div>
       </div>
-
-      <div class="diagram">User message
-    │
-    ▼
-┌─────────────────────┐     ┌────────────────────────────────────┐
-│  LlmAgent           │────▶│  tools.py (8 FunctionTools)          │
-│  (agent.py)         │     │  start_riddle, check_answer, ...   │
-│  LLM + callbacks    │◀────│  game.py holds secret answers      │
-└─────────────────────┘     └────────────────────────────────────┘
-         │
-         ▼
-   runtime.py — before_model / after_model / on_model_error
-                (Gemini 503 → Ollama + offline riddles)
-
-vs.
-
-User message → Workflow gate → route → tool nodes → LLM assess (main project)</div>
     </section>
 
-    <section id="code-layout">
-      <h2>3. Code layout — read in this order</h2>
-      <ol>
-        <li><code>riddles.json</code> + <code>constants.py</code> — data and shared keys</li>
-        <li><code>game.py</code> — session state, guess/hint/exit logic, local-fallback handler</li>
-        <li><code>tools.py</code> — eight ADK FunctionTools the LLM calls</li>
-        <li><code>runtime.py</code> — LLM routing, connectivity, ADK callbacks</li>
-        <li><code>agent.py</code> — instruction + <code>root_agent</code> wiring (~100 lines)</li>
-      </ol>
+    <!-- SLIDE 2 -->
+    <section class="slide">
+      <span class="tag">Concept</span>
+      <h2>What is an AI agent?</h2>
+      <p class="ext-subtitle">Not just a chatbot — an agent decides what to do next and can call tools.</p>
+      <div class="two-col">
+        <div class="card accent">
+          <h3><span class="card-icon blue">💬</span> Chatbot</h3>
+          <p>Text in, text out. No side effects, no session secrets.</p>
+        </div>
+        <div class="card green">
+          <h3><span class="card-icon green">🤖</span> Agent</h3>
+          <p>Calls tools, keeps secrets in session state, branches on user input.</p>
+        </div>
+      </div>
+      <p style="margin-top:1rem">This lab plays a riddle game: load riddles, validate guesses, give hints, reveal only on give-up, exit with <code>/exit</code>.</p>
+    </section>
 
-      <div class="diagram">riddles.json ──▶ riddles.py
+    <!-- SLIDE 3 -->
+    <section class="slide split">
+      <div class="slide-text">
+        <span class="tag purple">ADK 2.1</span>
+        <h2>Agents vs Workflows</h2>
+        <div class="two-col" style="margin-top:0.5rem">
+          <div class="card accent">
+            <h3><span class="card-icon blue">🧠</span> LlmAgent</h3>
+            <p><strong>Who decides?</strong> LLM picks tools per turn.</p>
+            <p><strong>Best for:</strong> Open-ended chat — hint, guess, give up in any order.</p>
+            <p><strong class="accent">This lab uses this.</strong></p>
+          </div>
+          <div class="card purple">
+            <h3><span class="card-icon purple">🔀</span> Workflow</h3>
+            <p><strong>Who decides?</strong> Graph picks nodes per turn.</p>
+            <p><strong>Best for:</strong> Fixed pipelines — same steps every time, easy to test.</p>
+            <p>See <code>code/agent.py</code> in the parent repo.</p>
+          </div>
+        </div>
+        <div class="speaker-note" style="margin-top:0.75rem;font-size:0.84rem">
+          <strong>Combine both</strong> when you need a predictable tool chain <em>and</em> conversational play —
+          e.g. parent repo: Workflow runs math → spatial → dates; LLM assesses at the end.
+        </div>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+            <text x="200" y="22" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="600">small_adk (LlmAgent)</text>
+            <rect x="130" y="34" width="140" height="40" rx="12" fill="#1a73e8"/>
+            <text x="200" y="58" text-anchor="middle" fill="white" font-size="10" font-weight="700">riddle_master</text>
+            <line x1="200" y1="74" x2="200" y2="92" stroke="#188038" stroke-width="1.5"/>
+            <rect x="60" y="92" width="280" height="28" rx="8" fill="#e6f4ea" stroke="#188038"/>
+            <text x="200" y="110" text-anchor="middle" fill="#188038" font-size="9">start_riddle · check_answer · give_hint · …</text>
+            <line x1="200" y1="120" x2="200" y2="138" stroke="#e8710a" stroke-width="1.5"/>
+            <rect x="100" y="138" width="200" height="32" rx="10" fill="#fef7e0" stroke="#e8710a"/>
+            <text x="200" y="158" text-anchor="middle" fill="#e8710a" font-size="9" font-weight="600">runtime.py callbacks</text>
+            <text x="200" y="195" text-anchor="middle" fill="#5f6368" font-size="10" font-weight="600">vs. parent Workflow</text>
+            <rect x="80" y="208" width="60" height="28" rx="8" fill="#f3e8ff" stroke="#7c3aed"/>
+            <text x="110" y="226" text-anchor="middle" fill="#7c3aed" font-size="8">gate</text>
+            <rect x="155" y="208" width="90" height="28" rx="8" fill="#e6f4ea" stroke="#188038"/>
+            <text x="200" y="226" text-anchor="middle" fill="#188038" font-size="8">tool nodes</text>
+            <rect x="260" y="208" width="60" height="28" rx="8" fill="#e8f0fe" stroke="#1a73e8"/>
+            <text x="290" y="226" text-anchor="middle" fill="#1a73e8" font-size="8">assess</text>
+            <line x1="140" y1="222" x2="155" y2="222" stroke="#dadce0" stroke-width="1.5"/>
+            <line x1="245" y1="222" x2="260" y2="222" stroke="#dadce0" stroke-width="1.5"/>
+          </svg>
+          <p class="viz-caption">LLM orchestrates tools · Workflow orchestrates nodes</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4 -->
+    <section class="slide split pattern-slide">
+      <div class="slide-text">
+        <span class="tag green">Code layout</span>
+        <h2>Read in this order</h2>
+        <div class="step-flow">
+          <div class="step-item accent-line">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <h4><code>riddles.json</code> + <code>constants.py</code></h4>
+              <p>Offline data and shared session keys.</p>
+            </div>
+          </div>
+          <div class="step-item green-line">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <h4><code>game.py</code></h4>
+              <p>Guess/hint/exit logic and local-fallback handler.</p>
+            </div>
+          </div>
+          <div class="step-item purple-line">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <h4><code>tools.py</code></h4>
+              <p>Eight ADK FunctionTools the LLM calls.</p>
+            </div>
+          </div>
+          <div class="step-item warn-line">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <h4><code>runtime.py</code></h4>
+              <p>LLM routing, connectivity probe, ADK callbacks.</p>
+            </div>
+          </div>
+          <div class="step-item accent-line">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <h4><code>agent.py</code></h4>
+              <p>Instruction + <code>root_agent</code> wiring (~100 lines).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-viz">
+        <div class="diagram">riddles.json ──▶ riddles.py
 constants.py ──┐
-               ├──▶ game.py ◀── runtime.py (callbacks import game helpers)
+               ├──▶ game.py ◀── runtime.py
                └──▶ tools.py ──▶ game.py
-agent.py ── imports tools.py + runtime.py ──▶ root_agent</div>
+agent.py ──▶ root_agent</div>
+        <div class="stat-row" style="margin-top:1rem">
+          <div class="stat-pill"><div class="val">5</div><div class="lbl">Python modules</div></div>
+          <div class="stat-pill green"><div class="val">8</div><div class="lbl">FunctionTools</div></div>
+          <div class="stat-pill warn"><div class="val">4</div><div class="lbl">Callbacks</div></div>
+        </div>
+      </div>
     </section>
 
-    <section id="how-it-works">
-      <h2>4. Runtime modes</h2>
-      <p>The agent picks its LLM and riddle source at startup (override with <code>.env</code>):</p>
-
+    <!-- SLIDE 5 -->
+    <section class="slide pattern-slide">
+      <span class="tag">Runtime</span>
+      <h2>LLM &amp; riddle source modes</h2>
+      <p class="ext-subtitle">Picked at startup from <code>.env</code> — auto-fallback on Gemini 429/503.</p>
       <table>
         <thead>
           <tr><th>Condition</th><th>LLM</th><th>Riddle source</th></tr>
         </thead>
         <tbody>
-          <tr><td>Internet + <code>GOOGLE_API_KEY</code></td><td>Gemini (cloud)</td><td>Online API → LLM-generated fallback</td></tr>
-          <tr><td>Internet, no API key</td><td>Ollama (local)</td><td>Online API → LLM-generated fallback</td></tr>
-          <tr><td>Internet off</td><td>Ollama (local)</td><td>8 offline riddles (<code>riddles.json</code>)</td></tr>
-          <tr><td>Gemini 503 / rate limit</td><td>Ollama (auto-fallback)</td><td>Offline riddles via deterministic handler — <strong>resend your message</strong></td></tr>
-          <tr><td><code>WORKSHOP_MODE=local</code></td><td>Ollama (forced)</td><td>Offline riddles only — best for live demos</td></tr>
+          <tr><td>Internet + <code>GOOGLE_API_KEY</code></td><td>Gemini</td><td>Online API → LLM fallback</td></tr>
+          <tr><td>Internet, no key</td><td>Local deterministic handler</td><td>8 offline riddles (avoids Ollama tool loops)</td></tr>
+          <tr><td><code>RAW_OLLAMA_MODE=true</code>, no key</td><td>Ollama</td><td>One local-model call per turn for wording</td></tr>
+          <tr><td>Internet off</td><td>Local deterministic handler</td><td>8 offline riddles</td></tr>
+          <tr><td>Gemini 429 / 503</td><td>Ollama (auto)</td><td>Offline via <code>game.py</code> — <strong>resend message</strong></td></tr>
+          <tr><td><code>WORKSHOP_MODE=local</code></td><td>Ollama (forced)</td><td>Offline only — best for demos</td></tr>
         </tbody>
       </table>
+        <div class="ext-tip"><strong>Local note:</strong> no-key/offline modes short-circuit in <code>before_model</code> by default. Set <code>RAW_OLLAMA_MODE=true</code> when you want to show the local model being called without ADK tool loops.</div>
+    </section>
 
-      <h3>Extension pattern: ADK callbacks (<code>runtime.py</code>)</h3>
-      <table>
-        <thead>
-          <tr><th>Callback</th><th>What it does</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>before_model_callback</code></td><td>On fallback: short-circuit to <code>game.py</code> (no Ollama tool loop). Handles <code>/exit</code> instantly.</td></tr>
-          <tr><td><code>after_model_callback</code></td><td>Remap hallucinated tool names (e.g. <code>riddle_master</code> → <code>start_riddle</code>)</td></tr>
-          <tr><td><code>on_model_error_callback</code></td><td>Gemini 503/429 → switch to Ollama, ask user to resend</td></tr>
-          <tr><td><code>on_tool_error_callback</code></td><td>Recover from invented tool names without crashing</td></tr>
-        </tbody>
-      </table>
+    <!-- SLIDE 6 -->
+    <section class="slide split pattern-slide">
+      <div class="slide-text">
+        <span class="tag purple">Extension</span>
+        <h2>ADK callbacks (<code>runtime.py</code>)</h2>
+        <table>
+          <thead>
+            <tr><th>Callback</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>before_model</code></td><td>Fallback → short-circuit to <code>game.py</code>. Handles <code>/exit</code> instantly.</td></tr>
+            <tr><td><code>after_model</code></td><td>Remap hallucinated tool names → valid tools</td></tr>
+            <tr><td><code>on_model_error</code></td><td>Gemini 429/503 → Ollama + real error message</td></tr>
+            <tr><td><code>on_tool_error</code></td><td>Recover from invented tool names</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg">
+            <text x="180" y="20" text-anchor="middle" fill="#5f6368" font-size="11" font-weight="600">Callback flow</text>
+            <rect x="120" y="32" width="120" height="36" rx="10" fill="#1a73e8"/>
+            <text x="180" y="54" text-anchor="middle" fill="white" font-size="10" font-weight="700">User message</text>
+            <line x1="180" y1="68" x2="180" y2="88" stroke="#1a73e8" stroke-width="1.5"/>
+            <rect x="70" y="88" width="220" height="36" rx="10" fill="#fef7e0" stroke="#e8710a"/>
+            <text x="180" y="110" text-anchor="middle" fill="#e8710a" font-size="9" font-weight="700">before_model_callback</text>
+            <line x1="120" y1="124" x2="80" y2="148" stroke="#188038" stroke-width="1.5"/>
+            <line x1="240" y1="124" x2="280" y2="148" stroke="#7c3aed" stroke-width="1.5"/>
+            <rect x="30" y="148" width="100" height="40" rx="10" fill="#e6f4ea" stroke="#188038"/>
+            <text x="80" y="166" text-anchor="middle" fill="#188038" font-size="8" font-weight="700">game.py</text>
+            <text x="80" y="180" text-anchor="middle" fill="#5f6368" font-size="7">deterministic</text>
+            <rect x="230" y="148" width="100" height="40" rx="10" fill="#e8f0fe" stroke="#1a73e8"/>
+            <text x="280" y="166" text-anchor="middle" fill="#1a73e8" font-size="8" font-weight="700">LLM + tools</text>
+            <text x="280" y="180" text-anchor="middle" fill="#5f6368" font-size="7">normal path</text>
+            <rect x="100" y="210" width="160" height="36" rx="10" fill="#fce8e6" stroke="#c5221f"/>
+            <text x="180" y="232" text-anchor="middle" fill="#c5221f" font-size="9" font-weight="700">on_model_error → Ollama</text>
+          </svg>
+          <p class="viz-caption">Callbacks intercept before the LLM runs</p>
+        </div>
+      </div>
+    </section>
 
-      <h3>Tools (<code>tools.py</code>)</h3>
+    <!-- SLIDE 7 -->
+    <section class="slide pattern-slide">
+      <span class="tag green">Tools</span>
+      <h2>FunctionTools (<code>tools.py</code>)</h2>
       <table>
         <thead>
           <tr><th>Tool</th><th>Purpose</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>start_riddle</code></td><td><strong>Preferred.</strong> Cached connectivity probe + load riddle in one LLM step</td></tr>
-          <tr><td><code>check_internet</code></td><td>Probe connectivity (result cached 60s per session)</td></tr>
-          <tr><td><code>fetch_online_riddle</code></td><td>HTTP API fetch; LLM generation on API failure</td></tr>
-          <tr><td><code>get_local_riddle</code></td><td>Random offline riddle from <code>riddles.json</code></td></tr>
-          <tr><td><code>check_answer</code></td><td>Normalized match; never returns the secret answer</td></tr>
-          <tr><td><code>give_hint</code></td><td>Pre-stored hints (offline) or LLM-generated (online)</td></tr>
-          <tr><td><code>reveal_answer</code></td><td>Only when the user explicitly gives up</td></tr>
-          <tr><td><code>exit_game</code></td><td>End the game — also triggered by <code>/exit</code>, quit, stop</td></tr>
+          <tr><td><code>start_riddle</code></td><td><strong>Preferred.</strong> Probe + fetch in one LLM step</td></tr>
+          <tr><td><code>check_internet</code></td><td>Connectivity probe (cached 60s)</td></tr>
+          <tr><td><code>fetch_online_riddle</code></td><td>HTTP API; LLM generation on failure</td></tr>
+          <tr><td><code>get_local_riddle</code></td><td>Random offline riddle</td></tr>
+          <tr><td><code>check_answer</code></td><td>Normalized match — never leaks secret</td></tr>
+          <tr><td><code>give_hint</code></td><td>Pre-stored (offline) or LLM-generated</td></tr>
+          <tr><td><code>reveal_answer</code></td><td>Only on explicit give-up</td></tr>
+          <tr><td><code>exit_game</code></td><td>End game — also <code>/exit</code>, quit, stop</td></tr>
         </tbody>
       </table>
+      <div class="speaker-note"><strong>Design rule:</strong> Correct answer lives in session state. Tools never leak it until <code>reveal_answer</code>.</div>
+    </section>
 
-      <h3>Game flow</h3>
-      <ol>
-        <li><code>Let's play</code> or <code>new riddle</code> → <code>start_riddle</code> → question only (no answer)</li>
-        <li>Wrong guess → <em>“Are you sure? Is that your final answer?”</em></li>
-        <li>Confirmed wrong → keep trying / hint — <strong>no</strong> auto-reveal</li>
-        <li><code>give up</code> → <code>reveal_answer</code></li>
-        <li>Correct → immediate congratulations</li>
-        <li><code>/exit</code> → leave game; say <code>Let's play</code> to start again</li>
-      </ol>
-
-      <div class="note">
-        <strong>Design rule:</strong> The correct answer lives in ADK session state.
-        Tools never leak it to the LLM until <code>reveal_answer</code> runs.
-        On cloud fallback, <code>game.py</code> runs the game deterministically (no small-model tool loops).
+    <!-- SLIDE 8 -->
+    <section class="slide">
+      <span class="tag">Game flow</span>
+      <h2>How a round plays out</h2>
+      <div class="obj-grid">
+        <div class="obj-item"><div class="num">1</div><p><code>Let's play</code> → <code>start_riddle</code> → question only</p></div>
+        <div class="obj-item"><div class="num">2</div><p>Wrong guess → <em>“Are you sure? Final answer?”</em></p></div>
+        <div class="obj-item"><div class="num">3</div><p>Confirmed wrong → hint or keep trying — no auto-reveal</p></div>
+        <div class="obj-item"><div class="num">4</div><p><code>give up</code> → <code>reveal_answer</code></p></div>
+        <div class="obj-item"><div class="num">5</div><p>Correct → immediate congratulations</p></div>
+        <div class="obj-item"><div class="num">6</div><p><code>/exit</code> → leave; <code>Let's play</code> to restart</p></div>
+      </div>
+      <div class="cmd-grid" style="margin-top:1rem">
+        <div class="cmd-chip">Let's play</div>
+        <div class="cmd-chip">keyboard</div>
+        <div class="cmd-chip">yes</div>
+        <div class="cmd-chip">hint</div>
+        <div class="cmd-chip">give up</div>
+        <div class="cmd-chip">/exit</div>
       </div>
     </section>
 
-    <section id="setup">
-      <h2>5. Setup</h2>
-      <h3>Prerequisites</h3>
-      <ul>
-        <li><strong>Python 3.11+</strong> — required. System <code>python3</code> on 3.8/3.10 only finds <code>google-adk 0.0.1</code> and fails.</li>
-        <li><a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> running (<code>ollama serve</code>) with your model pulled</li>
-        <li>Optional: <code>GOOGLE_API_KEY</code> for Gemini when online</li>
-      </ul>
-
-      <div class="note">
-        <strong>Python check:</strong> <code>python3.11 --version</code> must work before creating the venv.
-        Do not use bare <code>python3 -m venv</code> if it points to 3.8.
-      </div>
-
-      <h3>Install &amp; run</h3>
-      <pre>cd small_adk
+    <!-- SLIDE 9 -->
+    <section class="slide split pattern-slide">
+      <div class="slide-text">
+        <span class="tag warn">Setup</span>
+        <h2>Install &amp; run</h2>
+        <ul>
+          <li><strong>Python 3.11+</strong> — system 3.8/3.10 only finds <code>google-adk 0.0.1</code></li>
+          <li><a href="https://ollama.com/" target="_blank" rel="noopener">Ollama</a> configured if you want to test raw local LLM calls</li>
+          <li>Optional: <code>GOOGLE_API_KEY</code> for Gemini when online</li>
+        </ul>
+        <pre>cd small_adk
 python3.11 -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-python --version                  # must show 3.11.x
-pip install --upgrade pip
-pip install -r requirements.txt   # google-adk + litellm (~300 MB)
-cp .env.example .env              # add GOOGLE_API_KEY if you have one
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
 
-# From the parent of small_adk/ (folder that contains small_adk):
-adk web
-# → select small_adk</pre>
-
-      <h3>Recommended <code>.env</code> for workshop demos</h3>
-      <pre>WORKSHOP_MODE=local
+# From parent folder:
+adk web   # → select small_adk</pre>
+        <div class="ext-tip"><strong>401 with API key?</strong> Set <code>GOOGLE_GENAI_USE_VERTEXAI=FALSE</code>.</div>
+      </div>
+      <div class="slide-viz">
+        <pre>WORKSHOP_MODE=local
+# RAW_OLLAMA_MODE=true  # comment WORKSHOP_MODE first
 SKIP_STARTUP_PROBE=true
 OLLAMA_MODEL=ollama/your-model
 OLLAMA_API_BASE=http://localhost:11434
 GOOGLE_GENAI_USE_VERTEXAI=FALSE</pre>
-
-      <h3>All <code>.env</code> toggles</h3>
-      <table>
-        <thead>
+        <p class="viz-caption" style="margin-top:0.75rem">Recommended <code>.env</code> for live demos</p>
+        <table style="margin-top:1rem;font-size:0.8rem">
           <tr><th>Variable</th><th>Effect</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>GOOGLE_API_KEY</code></td><td>Enables Gemini when online</td></tr>
-          <tr><td><code>GOOGLE_GENAI_USE_VERTEXAI</code></td><td>Must be <code>FALSE</code> for API keys (not Vertex OAuth)</td></tr>
-          <tr><td><code>CLOUD_MODEL</code></td><td>Gemini model name (e.g. <code>gemini-2.5-flash</code>)</td></tr>
-          <tr><td><code>OLLAMA_MODEL</code> / <code>OLLAMA_API_BASE</code></td><td>Local model and endpoint (ngrok OK)</td></tr>
-          <tr><td><code>WORKSHOP_MODE=local</code></td><td>Force Ollama + offline riddles</td></tr>
-          <tr><td><code>SKIP_STARTUP_PROBE=true</code></td><td>Skip 3s internet probe at startup</td></tr>
-          <tr><td><code>CONNECTIVITY_CACHE_TTL=60</code></td><td>Reuse <code>check_internet</code> result (seconds)</td></tr>
-        </tbody>
-      </table>
-
-      <div class="note">
-        <strong>401 with API key?</strong> Set <code>GOOGLE_GENAI_USE_VERTEXAI=FALSE</code>.
-        Vertex AI requires OAuth / service-account auth — not a <code>GOOGLE_API_KEY</code>.
+          <tr><td><code>GOOGLE_API_KEY</code></td><td>Gemini when online</td></tr>
+          <tr><td><code>CLOUD_MODEL</code></td><td>e.g. gemini-2.5-flash</td></tr>
+          <tr><td><code>WORKSHOP_MODE=local</code></td><td>Force Ollama + offline</td></tr>
+          <tr><td><code>RAW_OLLAMA_MODE=true</code></td><td>Call Ollama once per turn for wording</td></tr>
+          <tr><td><code>CONNECTIVITY_CACHE_TTL</code></td><td>Probe cache (seconds)</td></tr>
+        </table>
       </div>
     </section>
 
-    <section id="demo">
-      <h2>6. Workshop demo script (~10 min)</h2>
-      <ol>
-        <li>Start: <code>adk web</code> → select <strong>small_adk</strong></li>
-        <li><code>Let's play</code> — trace shows <code>start_riddle</code> (one tool call)</li>
-        <li>Guess wrong → agent asks for final confirmation</li>
-        <li><code>hint</code> → pre-stored or generated hint</li>
-        <li><code>give up</code> → <code>reveal_answer</code> in trace</li>
-        <li><code>/exit</code> → game ends; <code>Let's play</code> starts fresh</li>
-        <li><strong>Fallback beat (optional):</strong> if Gemini 503s → resend message → offline riddle via Ollama path</li>
-        <li><strong>Offline beat:</strong> set <code>WORKSHOP_MODE=local</code> or disconnect Wi‑Fi → <code>new riddle</code></li>
-      </ol>
-
-      <h3>Copy-paste prompts</h3>
-      <pre>Let's play
-keyboard
-yes
-hint
-give up
-new riddle
-/exit
-Let's play</pre>
+    <!-- SLIDE 10 -->
+    <section class="slide">
+      <span class="tag green">Demo</span>
+      <h2>Workshop script (~10 min)</h2>
+      <div class="step-flow">
+        <div class="step-item accent-line">
+          <div class="step-num">1</div>
+          <div class="step-body"><h4>Start</h4><p><code>adk web</code> → select <strong>small_adk</strong></p></div>
+        </div>
+        <div class="step-item green-line">
+          <div class="step-num">2</div>
+          <div class="step-body"><h4>Play</h4><p><code>Let's play</code> — trace shows <code>start_riddle</code></p></div>
+        </div>
+        <div class="step-item purple-line">
+          <div class="step-num">3</div>
+          <div class="step-body"><h4>Interact</h4><p>Wrong guess → hint → give up → reveal</p></div>
+        </div>
+        <div class="step-item warn-line">
+          <div class="step-num">4</div>
+          <div class="step-body"><h4>Fallback beat</h4><p>Gemini 429 → resend → offline riddle via <code>game.py</code></p></div>
+        </div>
+        <div class="step-item accent-line">
+          <div class="step-num">5</div>
+          <div class="step-body"><h4>Offline beat</h4><p><code>WORKSHOP_MODE=local</code> or Wi‑Fi off → <code>new riddle</code></p></div>
+        </div>
+      </div>
+      <div class="speaker-note">Demo tip: open ADK trace to show tool calls on cloud path; explain why graph stays static on fallback.</div>
     </section>
 
-    <section id="files">
-      <h2>7. Project files</h2>
-      <table>
-        <thead>
-          <tr><th>File</th><th>Role</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><code>riddles.json</code></td><td>8 offline riddles with hint ladders</td></tr>
-          <tr><td><code>riddles.py</code></td><td>Loads <code>riddles.json</code> at import</td></tr>
-          <tr><td><code>constants.py</code></td><td>Session keys, regex patterns, tool names</td></tr>
-          <tr><td><code>game.py</code></td><td>Game logic, session state, local-fallback handler</td></tr>
-          <tr><td><code>tools.py</code></td><td>8 FunctionTools incl. <code>start_riddle</code></td></tr>
-          <tr><td><code>runtime.py</code></td><td>LLM routing, cached probe, ADK callbacks</td></tr>
-          <tr><td><code>agent.py</code></td><td>Instruction + <code>root_agent</code> export</td></tr>
-          <tr><td><code>__init__.py</code></td><td>Package entry — re-exports <code>root_agent</code></td></tr>
-          <tr><td><code>requirements.txt</code></td><td><code>google-adk</code> + <code>litellm</code> (slim install)</td></tr>
-          <tr><td><code>.env.example</code></td><td>API keys, models, workshop toggles</td></tr>
-          <tr><td><code>index.html</code></td><td>This lab guide</td></tr>
-        </tbody>
-      </table>
+    <!-- SLIDE 11 -->
+    <section class="slide">
+      <span class="tag green">Summary</span>
+      <h2>Project files &amp; takeaways</h2>
+      <div class="takeaway-grid">
+        <div class="takeaway-card">
+          <div class="tk-icon blue">📖</div>
+          <h3><code>riddles.json</code></h3>
+          <p>8 offline riddles with hint ladders.</p>
+        </div>
+        <div class="takeaway-card green">
+          <div class="tk-icon green">🎮</div>
+          <h3><code>game.py</code></h3>
+          <p>Session state + deterministic fallback handler.</p>
+        </div>
+        <div class="takeaway-card warn">
+          <div class="tk-icon orange">🔧</div>
+          <h3><code>tools.py</code></h3>
+          <p>8 FunctionTools incl. <code>start_riddle</code>.</p>
+        </div>
+        <div class="takeaway-card purple">
+          <div class="tk-icon purple">⚡</div>
+          <h3><code>runtime.py</code></h3>
+          <p>Routing, cached probe, ADK callbacks.</p>
+        </div>
+        <div class="takeaway-card">
+          <div class="tk-icon blue">🤖</div>
+          <h3><code>agent.py</code></h3>
+          <p>Instruction + <code>root_agent</code> export.</p>
+        </div>
+        <div class="takeaway-card green">
+          <div class="tk-icon green">📦</div>
+          <h3><code>requirements.txt</code></h3>
+          <p><code>google-adk</code> + <code>litellm</code> (~300 MB).</p>
+        </div>
+      </div>
+      <div class="takeaway-banner">
+        Small agent that's <span class="accent">interactive</span>, <span class="green">resilient</span>, and <span style="color:var(--purple)">workshop-ready</span>
+      </div>
     </section>
-  </main>
+
+    <!-- SLIDE 12 -->
+    <section class="slide title-slide">
+      <div class="slide-text">
+        <h1>Try it now</h1>
+        <p class="subtitle">Open ADK Web and play a round.</p>
+        <p style="margin-top:1.5rem;color:var(--muted)">
+          Run: <code>adk web</code> → <strong class="accent">small_adk</strong><br/>
+          Prompt: <code>Let's play</code><br/>
+          Lab guide: <code>small_adk/index.html</code>
+        </p>
+      </div>
+      <div class="slide-viz">
+        <div class="viz-box">
+          <svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+            <rect x="60" y="20" width="200" height="140" rx="12" fill="#f8faff" stroke="#dadce0" stroke-width="1.5"/>
+            <rect x="75" y="35" width="170" height="20" rx="4" fill="#e8f0fe"/>
+            <text x="160" y="49" text-anchor="middle" fill="#1a73e8" font-size="10" font-weight="600">Let's play</text>
+            <rect x="75" y="65" width="170" height="50" rx="8" fill="#e6f4ea" stroke="#188038"/>
+            <text x="160" y="88" text-anchor="middle" fill="#188038" font-size="9">What has keys but</text>
+            <text x="160" y="102" text-anchor="middle" fill="#188038" font-size="9">can't open locks?</text>
+            <rect x="75" y="125" width="100" height="24" rx="6" fill="#fef7e0" stroke="#e8710a"/>
+            <text x="125" y="141" text-anchor="middle" fill="#e8710a" font-size="9">hint</text>
+            <rect x="185" y="125" width="60" height="24" rx="6" fill="#f3e8ff" stroke="#7c3aed"/>
+            <text x="215" y="141" text-anchor="middle" fill="#7c3aed" font-size="9">give up</text>
+            <text x="160" y="195" text-anchor="middle" fill="#5f6368" font-size="11">Guess · hint · give up · /exit</text>
+          </svg>
+        </div>
+        <div class="hero-icons">
+          <div class="hero-icon"><span style="font-size:1.5rem">▶️</span><span>Let's play</span></div>
+          <div class="hero-icon"><span style="font-size:1.5rem">💡</span><span>hint</span></div>
+          <div class="hero-icon"><span style="font-size:1.5rem">🚪</span><span>/exit</span></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <nav class="nav">
+    <span>← → or Space to navigate · F for fullscreen</span>
+    <span id="slideCounter">1 / 12</span>
+  </nav>
+
+  <script>
+    const slides = document.querySelectorAll(".slide");
+    const progressBar = document.getElementById("progressBar");
+    const counter = document.getElementById("slideCounter");
+    let current = 0;
+
+    function showSlide(n) {
+      slides[current].classList.remove("active");
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add("active");
+      progressBar.style.width = ((current + 1) / slides.length * 100) + "%";
+      counter.textContent = (current + 1) + " / " + slides.length;
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        e.preventDefault(); showSlide(current + 1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault(); showSlide(current - 1);
+      } else if (e.key === "Home") {
+        showSlide(0);
+      } else if (e.key === "End") {
+        showSlide(slides.length - 1);
+      } else if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+      }
+    });
+
+    let touchStartX = 0;
+    document.addEventListener("touchstart", (e) => { touchStartX = e.touches[0].clientX; });
+    document.addEventListener("touchend", (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(dx) > 50) showSlide(current + (dx < 0 ? 1 : -1));
+    });
+
+    showSlide(0);
+  </script>
 </body>
 </html>

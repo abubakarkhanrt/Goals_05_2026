@@ -395,6 +395,106 @@ def _handle_local_fallback_turn(
     return None
 
 
+def _ollama_text(prompt: str, fallback: str) -> str:
+    try:
+        text = _llm_complete(prompt)
+    except Exception as exc:
+        logger.warning("Raw Ollama response failed; using static text: %s", exc)
+        return fallback
+    return text or fallback
+
+
+def _handle_raw_ollama_turn(
+    state: dict[str, Any],
+    user_text: str,
+) -> LlmResponse | None:
+    """Use Ollama for wording, but keep game state deterministic."""
+    user_text = user_text.strip()
+
+    if LOCAL_PLAY_RE.search(user_text) or (
+        not _has_active_riddle(state) and not state.get(STATE_EXITED)
+    ):
+        state[STATE_EXITED] = False
+        data = _load_local_riddle(state)
+        fallback = _local_riddle_intro(data["question"])
+        return _text_response(
+            _ollama_text(
+                "You are a concise riddle host. Present this riddle exactly, "
+                "without revealing or hinting at the answer. Include one short "
+                "line inviting the user to guess, ask for a hint, give up, or /exit.\n\n"
+                f"Riddle: {data['question']}",
+                fallback,
+            )
+        )
+
+    if not user_text:
+        return _text_response(
+            f"Your riddle:\n\n{state[STATE_QUESTION]}\n\n"
+            "Take a guess, ask for a hint, say give up, or type /exit to leave."
+        )
+
+    if GIVE_UP_RE.search(user_text):
+        result = _reveal_answer(state)
+        fallback = (
+            f"No worries! The answer was **{result['answer']}**.\n\n"
+            f"Riddle: {result['question']}\n\n"
+            'Want another? Say "new riddle".'
+        )
+        return _text_response(
+            _ollama_text(
+                "You are a concise riddle host. The user gave up, so reveal "
+                "the answer and invite another riddle. Keep it to 2-3 sentences.\n\n"
+                f"Riddle: {result['question']}\nAnswer: {result['answer']}",
+                fallback,
+            )
+        )
+
+    if HINT_RE.search(user_text):
+        result = _next_hint(state)
+        if result.get("hint"):
+            remaining = result.get("hints_remaining", 0)
+            fallback = (
+                f"Hint: {result['hint']}"
+                + (f" ({remaining} hint(s) left)" if remaining else "")
+            )
+            return _text_response(
+                _ollama_text(
+                    "You are a concise riddle host. Give only this hint. "
+                    "Do not add the answer or extra clues.\n\n"
+                    f"Hint: {result['hint']}\nHints remaining: {remaining}",
+                    fallback,
+                )
+            )
+        return _text_response(result.get("message", "No more hints available."))
+
+    if state.get(STATE_AWAITING_FINAL):
+        if CONFIRM_RE.search(user_text):
+            pending = str(state.get(STATE_PENDING_GUESS) or user_text)
+            result = _evaluate_guess(state, pending, is_final=True)
+        elif NO_RE.search(user_text):
+            state[STATE_AWAITING_FINAL] = False
+            state[STATE_PENDING_GUESS] = ""
+            return _text_response("No problem — keep guessing!")
+        else:
+            result = _evaluate_guess(state, user_text)
+    else:
+        result = _evaluate_guess(state, user_text)
+
+    if result.get("correct"):
+        return _text_response(
+            "Correct! Well done!\n\nSay \"new riddle\" if you'd like another."
+        )
+    if result.get("needs_confirmation"):
+        return _text_response("Are you sure? Is that your final answer?")
+    if result.get("final"):
+        return _text_response(
+            "Not quite! Keep trying, ask for a hint, or say \"give up\"."
+        )
+    if result.get("error"):
+        return _text_response(result["error"])
+    return None
+
+
 def _llm_complete(prompt: str) -> str:
     import litellm
 

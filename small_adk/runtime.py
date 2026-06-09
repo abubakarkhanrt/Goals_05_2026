@@ -62,6 +62,14 @@ def _workshop_mode() -> bool:
     }
 
 
+def _raw_ollama_mode() -> bool:
+    return os.environ.get("RAW_OLLAMA_MODE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
 def _skip_startup_probe() -> bool:
     return os.environ.get("SKIP_STARTUP_PROBE", "").strip().lower() in {
         "1",
@@ -162,20 +170,30 @@ def _resolve_runtime() -> tuple[Any, str, str, bool | None]:
     if online:
         return (
             _build_ollama_llm(),
-            "Ollama + online riddles (no GOOGLE_API_KEY)",
+            (
+                "raw Ollama single-call demo (offline riddles; no GOOGLE_API_KEY)"
+                if _raw_ollama_mode()
+                else "local deterministic (offline riddles; no GOOGLE_API_KEY)"
+            ),
             _ollama_model(),
             online,
         )
     return (
         _build_ollama_llm(),
-        "local (Ollama + offline riddles)",
+        (
+            "raw Ollama single-call demo (offline riddles)"
+            if _raw_ollama_mode()
+            else "local deterministic (offline riddles)"
+        ),
         _ollama_model(),
         online,
     )
 
 
 _ACTIVE_MODEL, _MODE_LABEL, _LITELLM_MODEL, _INTERNET_AT_STARTUP = _resolve_runtime()
-_FORCE_LOCAL_LLM = _workshop_mode()
+_FORCE_LOCAL_LLM = (
+    _workshop_mode() or (isinstance(_ACTIVE_MODEL, LiteLlm) and not _raw_ollama_mode())
+)
 
 
 def _should_use_local_llm(state: Any) -> bool:
@@ -288,6 +306,7 @@ async def _before_model(
     from .game import (
         _handle_exit_command,
         _handle_local_fallback_turn,
+        _handle_raw_ollama_turn,
         _last_user_text,
     )
 
@@ -306,6 +325,11 @@ async def _before_model(
     exit_response = _handle_exit_command(state, user_text)
     if exit_response is not None:
         return exit_response
+
+    if _raw_ollama_mode():
+        raw_local_response = _handle_raw_ollama_turn(state, user_text)
+        if raw_local_response is not None:
+            return raw_local_response
 
     if _should_use_local_llm(state):
         local_response = _handle_local_fallback_turn(state, user_text)

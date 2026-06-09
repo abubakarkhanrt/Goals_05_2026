@@ -78,5 +78,105 @@
       "Vending machines and piggy banks know me well.",
       "I am metal currency, not a snake."
     ]
+  },
+  {
+    "question": "What has to be broken before you can use it?",
+    "answer": "egg",
+    "aliases": ["an egg", "eggs"],
+    "hints": [
+      "Breakfast chefs crack me open every morning.",
+      "I come from a chicken, not a factory.",
+      "Scrambled, fried, or boiled — but first you must break my shell."
+    ]
+  },
+  {
+    "question": "I am always hungry and must always be fed. The finger I touch will soon turn red. What am I?",
+    "answer": "fire",
+    "aliases": ["a fire", "flame", "a flame"],
+    "hints": [
+      "Campers and chefs depend on me for warmth.",
+      "I consume wood, paper, and other fuel.",
+      "Stop, drop, and roll if I get on your clothes."
+    ]
+  },
+  {
+    "question": "What comes once in a minute, twice in a moment, but never in a thousand years?",
+    "answer": "m",
+    "aliases": ["the letter m", "letter m"],
+    "hints": [
+      "This is a wordplay riddle — read the words carefully.",
+      "Count the letter inside each word, not the time itself.",
+      "I am a single character in the English alphabet."
+    ]
+  },
+  {
+    "question": "I have branches, but no fruit, trunk, or leaves. What am I?",
+    "answer": "bank",
+    "aliases": ["a bank"],
+    "hints": [
+      "You might visit me to deposit or withdraw money.",
+      "My branches are buildings, not trees.",
+      "ATMs and tellers work inside my walls."
+    ]
+  },
+  {
+    "question": "What gets wetter the more it dries?",
+    "answer": "towel",
+    "aliases": ["a towel"],
+    "hints": [
+      "You reach for me after a shower or swim.",
+      "I absorb water from your skin.",
+      "Hang me up and I dry you off — while soaking up moisture myself."
+    ]
+  },
+  {
+    "question": "What has a neck but no head, and wears a cap?",
+    "answer": "bottle",
+    "aliases": ["a bottle"],
+    "hints": [
+      "You might find me in a fridge or recycling bin.",
+      "Twist or pop my cap to drink what's inside.",
+      "I hold water, soda, or juice — narrow at the top."
+    ]
+  },
+  {
+    "question": "What can you catch but not throw?",
+    "answer": "cold",
+    "aliases": ["a cold", "the cold"],
+    "hints": [
+      "This riddle plays on a common English phrase.",
+      "Sneezing and tissues might follow.",
+      "You catch me in winter, not with a baseball glove."
+    ]
+  },
+  {
+    "question": "What has many teeth but cannot bite?",
+    "answer": "comb",
+    "aliases": ["a comb"],
+    "hints": [
+      "Barbers and morning routines use me daily.",
+      "I smooth tangles in hair.",
+      "My teeth are plastic or bone, not sharp fangs."
+    ]
+  },
+  {
+    "question": "I am light as a feather, yet the strongest person cannot hold me for long. What am I?",
+    "answer": "breath",
+    "aliases": ["your breath", "a breath"],
+    "hints": [
+      "You do this automatically about twelve times a minute.",
+      "Holding me underwater is a common pool challenge.",
+      "Inhale, exhale — I slip away if you try to keep me inside."
+    ]
+  },
+  {
+    "question": "What goes up but never comes down?",
+    "answer": "age",
+    "aliases": ["your age", "my age"],
+    "hints": [
+      "Birthdays mark another year of this.",
+      "Everyone gains more of me every day.",
+      "I am counted in years, not meters or miles."
+    ]
   }
 ]

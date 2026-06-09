@@ -20,6 +20,7 @@ from .runtime import (
     _before_model,
     _on_model_error,
     _on_tool_error,
+    _raw_ollama_mode,
     _workshop_mode,
 )
 from .tools import (
@@ -60,10 +61,16 @@ elif _INTERNET_AT_STARTUP is None:
         "\nNote: SKIP_STARTUP_PROBE set — connectivity checked on first riddle.\n"
     )
 elif _INTERNET_AT_STARTUP and not os.environ.get("GOOGLE_API_KEY", "").strip():
-    _STARTUP_NOTE += (
-        "\nNote: Internet is on but GOOGLE_API_KEY is not set — using Ollama "
-        "with online riddle fetch.\n"
-    )
+    if _raw_ollama_mode():
+        _STARTUP_NOTE += (
+            "\nNote: RAW_OLLAMA_MODE=true — local Ollama will be called once "
+            "per turn for wording while Python controls game state.\n"
+        )
+    else:
+        _STARTUP_NOTE += (
+            "\nNote: Internet is on but GOOGLE_API_KEY is not set — using the "
+            "deterministic offline riddle handler to avoid local tool loops.\n"
+        )
 
 _internet_line = (
     "deferred (first riddle)"
